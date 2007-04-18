@@ -1,0 +1,35 @@
+FAQ - Frequently Asked Questions
+================================
+
+Q: What is 'babelize'?
+A: 'babelize' is an application and framework to localize native
+   games for Linux.
+
+Q: What is needed?
+A: You need a working bash, coreutils, grep and xdelta.
+
+Q: How can i localize a game?
+A: If you want to localize a game one time you only need to download
+   the language pack for your game. If you want to localize an
+   already localized game you need additionally the original cd.
+
+Q: How can i help?
+A: You can upload localized iso images to the babelize ftp in the
+   incoming folder.
+
+   Host: ftp.babelize.org
+   User: anonymous
+   Pass: anonymous
+
+   Well i only can localize games if i have the cd with the language,
+   for example: To create a german localized 'Heroes of Might and
+   Magic III' i need the german windows version of the game. So contact
+   me if you have a foreign language version of a native linux port.
+
+Q: Are there any limitations or known problems?
+A: I have never tested the language packs with newer xdelta above
+   version 1.x.
+
+Q: Why you are using delta files for localization?
+A: The answer is that most of the original files on the cd are packed
+   with proprietary archives.

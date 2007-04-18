@@ -1,0 +1,246 @@
+#!@BASH@
+#
+# babelize -- this is the complex game localization utility.
+#
+# Copyright (c) 2003-2007 Maik Broemme <mbroemme@plusserver.de>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+#
+# $Id$
+
+# this variables where filled at configure time, do not edit them.
+SYSCONFDIR="@SYSCONFDIR@"
+DATADIR="@DATADIR@"
+
+# loading required files.
+. ${SYSCONFDIR}/babelize.conf
+. ${DATADIR}/babelize/babelize
+
+# now set some required global variables.
+export PATH="/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin"
+export BABELIZE_PROCESS_NAME=$(basename ${0})
+export BABELIZE_VERSION='@BABELIZE_VERSION@'
+export BABELIZE_RELEASE='(slowmo-reloaded)'
+export BABELIZE_AUTHOR='Maik Broemme <mbroemme@plusserver.de>'
+
+# catch signals to clean up /tmp if operation is stopped.
+trap "babelize__signal_handler" EXIT TERM INT
+
+# this function shows the command line help.
+function babelize__show_help() {
+
+	# show the help.
+	babelize__printf "Usage: ${BABELIZE_PROCESS_NAME} [OPTION]..."
+	babelize__printf "Localize any supported game. (Example: ${BABELIZE_PROCESS_NAME} -v)"
+	babelize__printf ""
+	babelize__printf "  -h, --help		shows this help screen"
+	babelize__printf "  -v, --version		shows the version information"
+	babelize__printf "  -l, --list		list available langpacks"
+	babelize__printf ""
+	babelize__printf "      --localize	<archive> <gameroot>"
+	babelize__printf "			localize the game with the given langpack"
+	babelize__printf "      --localize-cd	<archive> <gameroot> <cdpath>"
+	babelize__printf "			localize the game with the original cd files"
+	babelize__printf "      --restore		<archive> <gameroot> <cdpath>"
+	babelize__printf "			restore the original game language"
+	babelize__printf ""
+	babelize__printf "Please report bugs to the appropriate authors, which can be found in the"
+	babelize__printf "version information. All other things can be send to <mbroemme@plusserver.de>"
+
+	# if no error was found, return zero.
+	return 2
+}
+
+# this function shows the command line version.
+function babelize__show_version() {
+
+	# show the main script version.
+	babelize__show_header
+	babelize__printf ""
+
+	# show some useful copyright information.
+	babelize__show_footer
+
+	# if no error was found, return zero.
+	return 2
+}
+
+# get the switches of the command line.
+function babelize__get_switches() {
+
+	# first check if no parameter was given.
+	[ "${#}" == "0" ] && {
+		babelize__printf "${BABELIZE_PROCESS_NAME}: no option given"
+		babelize__printf "Try \`${BABELIZE_PROCESS_NAME} --help' for more information."
+
+		# return if we found nothing.
+		return 1
+	}
+
+	# parse command line
+	while [ "${#}" -gt "0" ]; do
+		case ${1} in
+			-h|--help)
+
+				# show the help.
+				{
+					babelize__show_help
+				} || return "${?}"
+
+				# clear variables.
+				shift
+			;;      
+			-v|--version)
+
+				# show the version.
+				{
+					babelize__show_version
+				} || return "${?}"
+
+				# clear variables.
+				shift
+			;;
+			-l|--list)
+
+				# show the available language packs.
+				{
+					babelize__show_header &&
+					babelize__list_langpacks
+				} || return "${?}"
+
+				# clear variables.
+				shift
+			;;
+			--localize)
+
+				# check if we miss some parameter.
+				[ "${3}" == "" ] && {
+
+					# show the help for the missing parameter.
+					babelize__printf "${BABELIZE_PROCESS_NAME}: option \`${1}' requires 2 arguments"
+					babelize__printf "Try \`${BABELIZE_PROCESS_NAME} --help' for more information."
+
+					# return if we missed some parameter.
+					return 1
+				}
+
+				# now start real localization.
+				{
+
+					babelize__show_header &&
+					babelize__localize "${2}" "${3}"
+				} || return "${?}"
+
+				# clear variables.
+				shift
+				shift
+				shift
+			;;
+
+			--localize-cd)
+
+				# check if we miss some parameter.
+				[ "${4}" == "" ] && {
+
+					# show the help for the missing parameter.
+					babelize__printf "${BABELIZE_PROCESS_NAME}: option \`${1}' requires 3 arguments"
+					babelize__printf "Try \`${BABELIZE_PROCESS_NAME} --help' for more information."
+
+					# return if we missed some parameter.
+					return 1
+				}
+
+				# now start real localization.
+				{
+					babelize__show_header &&
+					babelize__install "${2}" "${3}" "${4}" &&
+					babelize__localize "${2}" "${3}"
+				} || return "${?}"
+
+				# clear variables.
+				shift
+				shift
+				shift
+				shift
+			;;
+			--restore)
+
+				# check if we miss some parameter.
+				[ "${4}" == "" ] && {
+
+					# show the help for the missing parameter.
+					babelize__printf "${BABELIZE_PROCESS_NAME}: option \`${1}' requires 3 arguments"
+					babelize__printf "Try \`${BABELIZE_PROCESS_NAME} --help' for more information."
+
+					# return if we missed some parameter.
+					return 1
+				}
+
+				# now start real localization.
+				{
+					babelize__show_header &&
+					babelize__install "${2}" "${3}" "${4}"
+				} || return "${?}"
+
+				# clear variables.
+				shift
+				shift
+				shift
+				shift
+			;;
+			*)
+
+				# show the help for an unknown option.
+				babelize__printf "${BABELIZE_PROCESS_NAME}: unrecognized option \`${1}'"
+				babelize__printf "Try \`${BABELIZE_PROCESS_NAME} --help' for more information."
+
+				# return if we found some unknown option.
+				return "${?}"
+
+				# clear variables.
+				shift
+			;;
+		esac
+
+		# skip to next parameter.
+		shift
+	done
+
+	# if no error was found, return zero.
+	return 0
+}
+
+# main() starts here.
+{
+	babelize__get_switches "${@}"
+}
+
+case "${?}" in
+	1)
+
+		# general error.
+		exit 1
+	;;
+	2)
+
+		# showed help or version.
+		exit 0
+	;;
+	*)
+
+		# unknown error.
+		exit "${?}"
+	;;
+esac

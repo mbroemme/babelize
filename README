@@ -1,0 +1,31 @@
+Introduction
+============
+
+'babelize' is an application and a framework to localize native
+Linux games, for example that from Linuxgamepublishing or
+Lokigames. 'babelize' uses a plugin architecture and after
+installing the main application you need to install at least one
+language pack to use it. :)
+
+With 'babelize' you can localize many favorite Linux games with
+many different languages, for example 'Heroes of Might an Magic III'
+can be localized with 'Polish', 'German' or 'Spanish'.
+
+Manual
+======
+
+Since first version the 'babelize' framework comes with a manpage
+for every installed script. If you use 'babelize' first time it
+is a good idea to read the `FAQ' file.
+
+Reporting Bugs
+==============
+
+Bug reports for 'babelize' can be send to me directly.
+
+    * Maik Broemme <mbroemme@plusserver.de>
+
+Enjoy!
+
+Maik Broemme <mbroemme@plusserver.de>
+http://www.babelize.org/

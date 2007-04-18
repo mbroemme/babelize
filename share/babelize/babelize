@@ -1,0 +1,503 @@
+#!@BASH@
+#
+# babelize -- this is the complex game localization utility.
+#
+# Copyright (c) 2003-2007 Maik Broemme <mbroemme@plusserver.de>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+#
+# $Id$
+
+# @_babelize__printf()
+#
+# @_${1}: text string
+#
+# this function shows something on stdout ;)
+function babelize__printf() {
+
+	# echo to stdout.
+	echo -e "${1}"
+
+	# if no error was found, return zero.
+	return 0
+}
+
+# @_babelize__signal_handler()
+#
+# function for signal handling.
+function babelize__signal_handler() {
+
+	# cleaning up /tmp.
+	[ -n "${BABELIZE_LANGPACK_REFERENCE}" ] && [ -d "${LANGPACK_EXTRACT_DIR:-/tmp}/${BABELIZE_LANGPACK_REFERENCE}" ] && @RM@ -R "${LANGPACK_EXTRACT_DIR:-/tmp}/${BABELIZE_LANGPACK_REFERENCE}"
+
+	# if no error was found, return zero.
+	return 0
+}
+
+# @_babelize__show_header()
+#
+# this function shows the header.
+function babelize__show_header() {
+
+	# show the main script version.
+	babelize__printf "${BABELIZE_PROCESS_NAME} (native-ports) ${BABELIZE_VERSION} ${BABELIZE_RELEASE}"
+	babelize__printf "Written by ${BABELIZE_AUTHOR}"
+
+	# if no error was found, return zero.
+	return 0
+}
+
+# @_babelize__show_footer()
+#
+# this function shows the footer.
+function babelize__show_footer() {
+
+	# show some useful copyright information.
+	babelize__printf "This is free software; see the source for copying conditions.  There is NO"
+	babelize__printf "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+
+	# if no error was found, return zero.
+	return 0
+}
+
+# @_babelize__validate_langpack()
+#
+# @_${1}: language pack
+#
+# this function checks if the language pack is valid.
+function babelize__validate_langpack() {
+
+	# first check if the archive exist.
+	[ -e "${LANGPACK_DIR:-/usr/local/share/babelize/langpacks}/${1}" ] && {
+
+		# third check if the config file exist.
+		[ -e "${LANGPACK_DIR:-/usr/local/share/babelize/langpacks}/${1/tar.gz/conf}" ] && {
+
+			# now try to load the config file.
+			source "${LANGPACK_DIR:-/usr/local/share/babelize/langpacks}/${1/tar.gz/conf}" || {
+
+				# show user what we do.
+				babelize__printf "The given config file '${1/tar.gz/conf}' seems to be corrupt"
+
+				# the config file is corrupt, break execution.
+				return 1
+			}
+		} || {
+
+			# show user what we do.
+			babelize__printf "The given langpack config '${1/tar.gz/conf}' does not exist."
+
+			# the config file is missing, break execution.
+			return 1
+		}
+	} || {
+
+		# show user what we do.
+		babelize__printf "The given langpack archive '${1}' does not exist."
+
+		# the archive file is missing, break execution.
+		return 1
+	}
+
+	# if no error was found, return zero.
+	return 0
+}
+
+# @_babelize__validate_gameroot()
+#
+# @_${1}: game directory
+#
+# this function checks if a given gameroot directory exist.
+function babelize__validate_gameroot() {
+
+	# check if the gameroot exist.
+	[ -d "${1}" ] || {
+
+		# show user what we do.
+		babelize__printf "The gameroot directory '${1}' does not exist."
+
+		# the gameroot directory did not exist, break execution.
+		return 1
+	}
+
+	# if no error was found, return zero.
+	return 0
+}
+
+# @_babelize__validate_cdpath()
+#
+# @_${1}: cd directory
+#
+# this function checks if a given cdpath directory exist.
+function babelize__validate_cdpath() {
+
+	# check if the cdpath exist.
+	[ -d "${1}" ] || {
+
+		# show user what we do.
+		babelize__printf "The cdpath directory '${1}' does not exist."
+
+		# the gameroot directory did not exist, break execution.
+		return 1
+	}
+
+	# if no error was found, return zero.
+	return 0
+}
+
+# @_babelize__validate_version()
+#
+# this function checks if the used babelize version is correct.
+function babelize__validate_version() {
+
+	# check if all required variables were exported.
+	{
+		set | @GREP@ -q ^BABELIZE_REQUIRED_VERSION &&
+		set | @GREP@ -q ^BABELIZE_GAME_NAME &&
+		set | @GREP@ -q ^BABELIZE_LANGKACK_VERSION &&
+		set | @GREP@ -q ^BABELIZE_LANGPACK_LANGUAGE &&
+		set | @GREP@ -q ^BABELIZE_LANGPACK_LOCALE &&
+		set | @GREP@ -q ^BABELIZE_LANGPACK_REFERENCE &&
+		set | @GREP@ -q ^BABELIZE_FILES
+	} || return 1
+
+	# check if the babelize version is known to work with that langpack version.
+	[[ "${BABELIZE_REQUIRED_VERSION}" > "${BABELIZE_VERSION}" ]] && {
+
+		# show user what we do.
+		babelize__printf "Your babelize version is to old, please upgrade it to at least '${BABELIZE_REQUIRED_VERSION}'"
+
+		# skip to next file if version number is to high.
+		return 1
+	}
+
+	# if no error was found, return zero.
+	return 0
+}
+
+# @_babelize__list_langpacks()
+#
+# this function shows the installed langpacks.
+function babelize__list_langpacks() {
+
+	# first check if the langpack directory exist.
+	[ ! -d "${LANGPACK_DIR:-/usr/local/share/babelize/langpacks}" ] && {
+
+		# show user the error.
+		babelize__printf "The langpack directory '${LANGPACK_DIR:-/usr/local/share/babelize/langpacks}' does not exist."
+
+		# something wents wrong, so break execution.
+		return 1
+	}
+
+	# prepare header.
+	babelize__printf ""
+
+	# search for langpacks.
+	local LOCAL__file
+	for LOCAL__file in $(@FIND@ "${LANGPACK_DIR:-/usr/local/share/babelize/langpacks}" -mindepth 1 -maxdepth 1 -type f -name \*.tar.gz | sort) ; do
+
+		# check if the config file exist.
+		[ -e "${LANGPACK_DIR:-/usr/local/share/babelize/langpacks}/$(@BASENAME@ ${LOCAL__file/tar.gz/conf})" ] && {
+
+			# now try to load the config file.
+			source "${LANGPACK_DIR:-/usr/local/share/babelize/langpacks}/$(@BASENAME@ ${LOCAL__file/tar.gz/conf})" || {
+
+				# skip to next file.
+				unset LOCAL__file
+				continue
+			}
+		}
+
+		# now check if all required variables were exported.
+		{
+			set | @GREP@ -q ^BABELIZE_REQUIRED_VERSION &&
+			set | @GREP@ -q ^BABELIZE_GAME_NAME &&
+			set | @GREP@ -q ^BABELIZE_LANGKACK_VERSION &&
+			set | @GREP@ -q ^BABELIZE_LANGPACK_LANGUAGE &&
+			set | @GREP@ -q ^BABELIZE_LANGPACK_LOCALE &&
+			set | @GREP@ -q ^BABELIZE_LANGPACK_REFERENCE &&
+			set | @GREP@ -q ^BABELIZE_FILES
+		} || {
+
+			# skip to next file.
+			unset LOCAL__file
+			continue
+		}
+
+		# if the archive exist, show user collected information.
+		babelize__printf "[${BABELIZE_LANGPACK_REFERENCE}-${BABELIZE_LANGPACK_LOCALE}]"
+		babelize__printf ""
+
+		# check if the babelize version is known to work with that langpack version.
+		[[ "${BABELIZE_REQUIRED_VERSION}" > "${BABELIZE_VERSION}" ]] && {
+
+			# babelize version needs to be upgraded before using that language pack.
+			babelize__printf "  Required Babelize:\t${BABELIZE_REQUIRED_VERSION} (${BABELIZE_VERSION} found) - UPDATE REQUIRED"
+		} || {
+
+			# babelize version is good for that language pack.
+			babelize__printf "  Required Babelize:\t${BABELIZE_REQUIRED_VERSION} (${BABELIZE_VERSION} found)"
+		}
+
+		babelize__printf "  Game name:\t\t${BABELIZE_GAME_NAME}"
+		babelize__printf "  Langpack version:\t${BABELIZE_LANGKACK_VERSION}"
+		babelize__printf "  Langpack language:\t${BABELIZE_LANGPACK_LANGUAGE}"
+		babelize__printf "  Langpack archive:\t$(@BASENAME@ ${LOCAL__file})"
+		babelize__printf ""
+	done
+
+	# check if we found any langpack.
+	[ "${LOCAL__file}" == "" ] && {
+
+		# show user the error.
+		babelize__printf "No available langpacks in '${LANGPACK_DIR:-/usr/local/share/babelize/langpacks}' were found."
+
+		# something wents wrong, so break execution.
+		return 1
+	}
+
+	# if no error was found, return zero.
+	return 0
+}
+
+# @_babelize__install()
+#
+# @_${1}: language pack
+# @_${2}: game directory
+# @_${3}: cd directory
+#
+# this function localizes a specific game.
+function babelize__install() {
+
+	# first check if the archive exist.
+	babelize__validate_langpack "${1}" || return 1
+
+	# second check if the gameroot exist.
+	babelize__validate_gameroot "${2}" || return 1
+
+	# third check if the cdpath exist.
+	babelize__validate_cdpath "${3}" || return 1
+
+	# fourth check if babelize version is correct.
+	babelize__validate_version || return 1
+
+	# show user the number of files to process.
+	babelize__printf "Number of original files: ${#BABELIZE_FILES[@]}"
+
+	# loop through all files and copy them.
+	local LOCAL__line
+	for LOCAL__line in "${BABELIZE_FILES[@]##*  }" ; do
+
+		# parse the required information.
+		local LOCAL__file="${LOCAL__line##*:}"
+		local LOCAL__archive="${LOCAL__line%%:*}"
+
+		# check if we should extract or copy a file.
+		[ "${LOCAL__file}" == "${LOCAL__archive}" ] && {
+
+			# show user what we do.
+			babelize__printf "Copying original file '${3}/${LOCAL__file}' -> '${2}/${LOCAL__file}'"
+
+			# check if file exist.
+			[ -r "${3}/${LOCAL__file}" ] || {
+
+				# show user what we do.
+				babelize__printf "The file '${3}/${LOCAL__file}' does not exist, maybe this is the wrong cd?"
+
+				# break execution, if file is missing.
+				return 1
+			}
+
+			# check if destination directory exist.
+			[ -d "${2}/${LOCAL__file%/*}" ] || {
+
+				# create directory for destination files.
+				@MKDIR@ -p "${2}/${LOCAL__file%/*}"
+			}
+
+			# copy the file from cd.
+			@CP@ "${3}/${LOCAL__file}" "${2}/${LOCAL__file}" || {
+
+				# show user what we do.
+				babelize__printf "The file '${3}/${LOCAL__file}' could not be copied, maybe a file permission problem?"
+
+				# break execution, if file is corrupt.
+				return 1
+			}
+		} || {
+
+			# show user what we do.
+			babelize__printf "Extracting from file '${3}/${LOCAL__archive}' -> '${2}/${LOCAL__file}'"
+
+			# check if archive exist.
+			[ -r "${3}/${LOCAL__archive}" ] || {
+
+				# show user what we do.
+				babelize__printf "The archive '${3}/${LOCAL__archive}' does not exist, maybe this is the wrong cd?"
+
+				# break execution, if file is missing.
+				return 1
+			}
+
+			# check what compression was used.
+			case "${LOCAL__archive}" in
+				*.tar.gz)
+
+					# extract the file from the archive.
+					@TAR@ xzf "${3}/${LOCAL__archive}" -C "${2}" "${LOCAL__file}"
+				;;
+				*.tar.bz2)
+
+					# extract the file from the archive.
+					@TAR@ xjf "${3}/${LOCAL__archive}" -C "${2}" "${LOCAL__file}"
+				;;
+				*.tar)
+
+					# extract the file from the archive.
+					@TAR@ xf "${3}/${LOCAL__archive}" -C "${2}" "${LOCAL__file}"
+				;;
+				*)
+
+					# unknown compression method.
+					babelize__printf "The compression method for archive '${3}/${LOCAL__archive}' is unknown."
+
+					# return with error.
+					return 1
+
+				;;
+			esac
+		}
+
+		# change file permissions.
+		@CHMOD@ 0644 "${2}/${LOCAL__file}" || {
+
+			# show user what we do.
+			babelize__printf "The permissions of file '${3}/${LOCAL__file}' could not be changed, maybe a strange problem?"
+
+			# break execution, if file is corrupt.
+			return 1
+		}
+	done
+
+	# if no error was found, return zero.
+	return 0
+}
+
+# @_babelize__localize()
+#
+# @_${1}: language pack
+# @_${2}: game directory
+#
+# this function localizes a specific game.
+function babelize__localize() {
+
+	# first check if the archive exist.
+	babelize__validate_langpack "${1}" || return 1
+
+	# secod check if the gameroot exist.
+	babelize__validate_gameroot "${2}" || return 1
+
+	# third check if babelize version is correct.
+	babelize__validate_version || return 1
+
+	# show user the number of files to process.
+	babelize__printf "Number of xdelta files: ${#BABELIZE_FILES[@]}"
+
+	# set working directory to ${2} required for md5sum.
+	cd "${2}"
+
+	# first - check if the files matches the md5sum.
+	local LOCAL__line
+	for LOCAL__line in "${BABELIZE_FILES[@]/  *:/  }" ; do
+
+		# parse the required information.
+		local LOCAL__md5="${LOCAL__line%%  *}"
+		local LOCAL__file="${LOCAL__line##*  }"
+
+		# show user what we do.
+		babelize__printf "Checking md5sum of '${2}/${LOCAL__file}'"
+
+		# check if file exist.
+		[ -r "${2}/${LOCAL__file}" ] || {
+
+			# show user what we do.
+			babelize__printf "The file '${2}/${LOCAL__file}' does not exist, maybe this is no full game installation?"
+
+			# break execution, if file is missing.
+			return 1
+		}
+
+		# check the md5sum of the source file.
+		echo "${LOCAL__md5}  ${LOCAL__file}" | @MD5SUM@ --check --status || {
+
+			# show user what we do.
+			babelize__printf "The file '${2}/${LOCAL__file}' seems to be corrupt, maybe a previously applied localization problem?"
+
+			# break execution, if file is corrupt.
+			return 1
+		}
+	done
+
+	# cleaning up /tmp.
+	[ -d "${LANGPACK_EXTRACT_DIR:-/tmp}/${BABELIZE_LANGPACK_REFERENCE}" ] && @RM@ -R "${LANGPACK_EXTRACT_DIR:-/tmp}/${BABELIZE_LANGPACK_REFERENCE}"
+
+	# show user what we do.
+	babelize__printf "Extracting '${1}'"
+
+	# create directory for extraction and extract langpack there.
+	@MKDIR@ "${LANGPACK_EXTRACT_DIR:-/tmp}/${BABELIZE_LANGPACK_REFERENCE}"
+	@TAR@ xzf "${LANGPACK_DIR:-/usr/local/share/babelize/langpacks}/${1}" -C "${LANGPACK_EXTRACT_DIR:-/tmp}/${BABELIZE_LANGPACK_REFERENCE}"
+
+	# second - loop for the language pack.
+	local LOCAL__line
+	for LOCAL__line in "${BABELIZE_FILES[@]#*  }" ; do
+
+		# parse the required information.
+		local LOCAL__work="${LOCAL__line%%  *}"
+		local LOCAL__file="${LOCAL__line##*  }"
+		local LOCAL__file="${LOCAL__file##*:}"
+
+		# check if we need to apply a xdelta file.
+		[ "${LOCAL__work}" == "patch:1" ] && {
+
+			# show user what we do.
+			babelize__printf "Applying xdelta of '${2}/${LOCAL__file}'"
+
+			# patch files.
+			@XDELTA@ patch "${LANGPACK_EXTRACT_DIR:-/tmp}/${BABELIZE_LANGPACK_REFERENCE}/${BABELIZE_LANGPACK_LOCALE}/${LOCAL__file}.xdelta" "${2}/${LOCAL__file}" "${2}/${LOCAL__file}.xdp" || {
+
+				# show user what we do.
+				babelize__printf "The file '${2}/${LOCAL__file}' could not be patched."
+
+				# break execution, if patching failed.
+				return 1
+			}
+
+			# overwrite old files with newly created one.
+			@MV@ "${2}/${LOCAL__file}.xdp" "${2}/${LOCAL__file}"
+		}
+	done
+
+	# removing temporary files
+	@RM@ -R "${LANGPACK_EXTRACT_DIR:-/tmp}/${BABELIZE_LANGPACK_REFERENCE}"
+
+	# we have finished successfully. :)
+	babelize__printf ""
+	babelize__printf "The game '${BABELIZE_GAME_NAME}' is now localized with language '${BABELIZE_LANGPACK_LANGUAGE}'"
+
+	# if no error was found, return zero.
+	return 0
+}

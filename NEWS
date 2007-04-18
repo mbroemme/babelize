@@ -1,0 +1,13 @@
+Initial version 1.0.0 (2007-04-17)
+==================================
+
+    * created a new plugin interface for babelize to make localizations
+      independent from the binary version.
+
+    * added support for checking the md5sum of the target files on which
+      the xdelta files should be applied.
+
+    * added support for dynamically parsing the script files and replace
+      binary pathes at installation time.
+
+    * added fully working command line interface.
