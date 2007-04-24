@@ -466,6 +466,7 @@ function babelize__localize() {
 
 		# parse the required information.
 		local LOCAL__work="${LOCAL__line%%  *}"
+		local LOCAL__file="${LOCAL__line##*  }"
 		local LOCAL__file="${LOCAL__file##*:}"
 
 		# check if we need to apply a xdelta file.
