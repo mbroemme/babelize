@@ -64,6 +64,10 @@ AC_PATH_PROG([xdeltapath], [xdelta], [no])
 if test "$xdeltapath" = "no"; then
 	AC_MSG_ERROR([xdelta binary is required])
 fi
+AC_PATH_PROG([statpath], [stat], [no])
+if test "$statpath" = "no"; then
+	AC_MSG_ERROR([stat binary is required])
+fi
 
 # Creating files.
 AC_OUTPUT([
@@ -71,4 +75,5 @@ Makefile
 bin/Makefile
 etc/Makefile
 share/babelize/Makefile
+share/man/Makefile
 ])
