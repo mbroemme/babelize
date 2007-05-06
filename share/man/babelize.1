@@ -1,0 +1,68 @@
+.\" Copyright (c) 2003-2007 Maik Broemme <mbroemme@plusserver.de>
+.\"
+.\" This is free documentation; you can redistribute it and/or
+.\" modify it under the terms of the GNU General Public License as
+.\" published by the Free Software Foundation; either version 2 of
+.\" the License, or (at your option) any later version.
+.\"
+.\" The GNU General Public License's references to "object code"
+.\" and "executables" are to be interpreted as the output of any
+.\" document formatting or typesetting system, including
+.\" intermediate and printed output.
+.\"
+.\" This manual is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public
+.\" License along with this manual; if not, write to the Free
+.\" Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111,
+.\" USA.
+.TH babelize 1 2007-05-07 "The Babelize Localization Project"
+.SH NAME
+babelize - script to localize a game with another language.
+.SH SYNOPSIS
+.B babelize
+[OPTION]...
+.SH DESCRIPTION
+.PP
+\fIbabelize\fP is a localization utility on top of all the language packs you can download from \fIhttps://babelize.org/\fP website. The main idea behind this project is to create an easy to use localization utility for all the games which were ported natively to linux like that from \fILokigames\fP or \fILinuxgamepublishing\fP.
+.SH OPTIONS
+.l
+\fIbabelize\fP accepts the following options:
+.TP 8
+.B  -h|--help
+Print the usage help.
+.TP 8
+.B  -v|--version
+Print the installed version.
+.TP 8
+.B  -l|--list
+Print all available language packs.
+.TP 8
+.B     --localize <archive> <gameroot>
+Localize the game with the given language pack.
+.TP 8
+.B     --localize-cd <archive> <gameroot> <cdpath>
+Localize the game with the given language pack but before localization the original files from cd are copied.
+.TP 8
+.B     --restore <archive> <gameroot> <cdpath>
+Restore the original language from cd.
+.SH USAGE
+.TP 8
+.B  Localize 'Heroes of Might and Magic 3' with the german language pack without CD.
+babelize --localize heroes3-lang-de-1.0.0.tar.gz /usr/local/games/share/heroes3
+.TP 8
+.B  Localize 'Alpha Centauri - Alien Crossfire' with the german language pack and original media from CD.
+babelize --localize smacx-lang-de-1.0.0.tar.gz /usr/local/games/share/smac
+.TP 8
+.B  Restore 'Alpha Centauri - Alien Crossfire' original language files.
+babelize --restore smacx-lang-de-1.0.0.tar.gz /usr/local/games/share/smac
+.SH AUTHORS
+Check documentation.
+.TP
+babelize is (c) 2003-2007
+.B Maik Broemme
+.PP
+Please send mails about it to Maik Broemme <mbroemme@plusserver.de>
