@@ -157,6 +157,31 @@ function babelize__validate_cdpath() {
 	return 0
 }
 
+# @_babelize__validate_diskspace()
+#
+# @_${1}: language pack
+#       
+# this function checks if enough diskspace is available for extracting language pack.
+function babelize__validate_diskspace() {
+
+	# check if we have enough diskspace.
+	local LOCAL__diskspace=$(($(@STAT@ -f --format %f "${LANGPACK_EXTRACT_DIR:-/tmp}") * 1024))
+	local LOCAL__filesize=$(($(@STAT@ --format %s "${LANGPACK_DIR:-/usr/local/share/babelize/langpacks}/${1}") + $(@STAT@ --format %s "${LANGPACK_DIR:-/usr/local/share/babelize/langpacks}/${1}") / 100 * 5))
+
+	# check if filesize plus 5% is smaller than diskspace
+	[ "$((${LOCAL__filesize} + ${LOCAL__filesize} / 100 * 5))" -ge "${LOCAL__diskspace}" ] && {
+
+		# show user what we do.
+		babelize__printf "The diskspace '${LOCAL__diskspace}' is less than required diskspace '$((${LOCAL__filesize} + ${LOCAL__filesize} / 100 * 5))'"
+
+		# the diskspace is not enough, break execution.
+		return 1
+	}
+
+        # if no error was found, return zero.
+        return 0
+}
+
 # @_babelize__validate_version()
 #
 # this function checks if the used babelize version is correct.
@@ -409,7 +434,10 @@ function babelize__localize() {
 	# secod check if the gameroot exist.
 	babelize__validate_gameroot "${2}" || return 1
 
-	# third check if babelize version is correct.
+	# third check if enough free space is available.
+	babelize__validate_diskspace "${1}" || return 1
+
+	# fourth check if babelize version is correct.
 	babelize__validate_version || return 1
 
 	# show user the number of files to process.
