@@ -24,4 +24,5 @@ install-data-hook:
 	$(sedpath) 's,@MD5SUM@,${md5sumpath},' -i ${babelizedir}/babelize
 	$(sedpath) 's,@TAR@,${tarpath},' -i ${babelizedir}/babelize
 	$(sedpath) 's,@XDELTA@,${xdeltapath},' -i ${babelizedir}/babelize
+	$(sedpath) 's,@STAT@,${statpath},' -i ${babelizedir}/babelize
 	$(mkdirpath) -p ${langpackdir}
