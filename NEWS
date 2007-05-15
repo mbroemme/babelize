@@ -1,3 +1,11 @@
+Changes version 1.0.1 (2007-05-07)
+==================================
+
+    * added manpages for 'babelize' and 'babelize-config'
+
+    * fixed a bug that on 'make install' only one time the binary
+      pathes are replaced.
+
 Initial version 1.0.0 (2007-04-17)
 ==================================
 
