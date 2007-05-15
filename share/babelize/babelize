@@ -298,46 +298,28 @@ function babelize__list_langpacks() {
 	return 0
 }
 
-# @_babelize__remove()
+# @_babelize__files()
 #
-# @_${1}: language pack
-# @_${2}: game directory
+# @_${1}: count parameter
+# @_${2}: babelize file array
 #
-# this function removes files from previous localization.
-function babelize__remove() {
+# this function returns the number of files which matches the search criteria.
+function babelize__files() {
 
-	# first check if the archive exist.
-	babelize__validate_langpack "${1}" || return 1
+	# fetch game directory information.
+	local LOCAL__parameter="${1}"
 
-	# second check if the gameroot exist.
-	babelize__validate_gameroot "${2}" || return 1
+	# shift argument list, because next argument must be the file array.
+	shift
 
-	# third check if babelize version is correct.
-	babelize__validate_version || return 1
-
-	# show user what we do.
-	babelize__printf "Cleaning up '${2}'"
-
-	# loop through all files and remove the selected files.
+	# loop through all files and count that one we should process.
 	local LOCAL__line
-	for LOCAL__line in "${BABELIZE_FILES[@]}" ; do
-
-		# check if we are using the right file format.
+	for LOCAL__line in "${@}" ; do
 		case "${LOCAL__line}" in
-			md5:*action:build-*)
+			*${LOCAL__parameter}*)
 
-				# fetch target information.
-				local LOCAL__target="${LOCAL__line##*target:}"
-
-				# check if the file exist.
-				[ -e "${2}/${LOCAL__target}" ] && {
-
-					# show user what we do.
-					babelize__printf "Removing file '${2}/${LOCAL__target}'"
-
-					# remove old file.
-					@RM@ "${2}/${LOCAL__target}"
-				}
+				# increase counter.
+				local LOCAL__count="$((LOCAL__count + 1))"
 			;;
 			*)
 
@@ -346,6 +328,9 @@ function babelize__remove() {
 			;;
 		esac
 	done
+
+	# show the number of files to process.
+	echo "${LOCAL__count:-0}"
 
 	# if no error was found, return zero.
 	return 0
@@ -397,6 +382,65 @@ function babelize_permission() {
 			;;
 		esac
 	done
+
+	# if no error was found, return zero.
+	return 0
+}
+
+# @_babelize__remove()
+#
+# @_${1}: language pack
+# @_${2}: game directory
+#
+# this function removes files from previous localization.
+function babelize__remove() {
+
+	# first check if the archive exist.
+	babelize__validate_langpack "${1}" || return 1
+
+	# second check if the gameroot exist.
+	babelize__validate_gameroot "${2}" || return 1
+
+	# third check if babelize version is correct.
+	babelize__validate_version || return 1
+
+	# show user what we do.
+	babelize__printf "Cleaning up '${2}'"
+
+	# show user the number of files to process.
+	babelize__printf "Number of removal files: $(babelize__files "build-" "${BABELIZE_FILES[@]}")"
+
+	# loop through all files and remove the selected files.
+	local LOCAL__line
+	for LOCAL__line in "${BABELIZE_FILES[@]}" ; do
+
+		# check if we are using the right file format.
+		case "${LOCAL__line}" in
+			md5:*action:build-*)
+
+				# fetch target information.
+				local LOCAL__target="${LOCAL__line##*target:}"
+
+				# check if the file exist.
+				[ -e "${2}/${LOCAL__target}" ] && {
+
+					# show user what we do.
+					babelize__printf "Removing file '${2}/${LOCAL__target}'"
+
+					# remove old file.
+					@RM@ "${2}/${LOCAL__target}"
+				}
+			;;
+			*)
+
+				# nothing to do.
+				continue
+			;;
+		esac
+	done
+
+	# if no error was found, return zero.
+	return 0
 }
 
 # @_babelize__install()
@@ -421,7 +465,7 @@ function babelize__install() {
 	babelize__validate_version || return 1
 
 	# show user the number of files to process.
-	babelize__printf "Number of original files: ${#BABELIZE_FILES[@]}"
+	babelize__printf "Number of original files: $(babelize__files "patch-" "${BABELIZE_FILES[@]}")"
 
 	# declare an empty array for the archives.
 	declare -a LOCAL__archives=()
@@ -582,12 +626,12 @@ function babelize__localize() {
 	babelize__validate_version || return 1
 
 	# show user the number of files to process.
-	babelize__printf "Number of language files: ${#BABELIZE_FILES[@]}"
+	babelize__printf "Number of md5 files: $(babelize__files "patch-" "${BABELIZE_FILES[@]}")"
 
 	# set working directory to ${2} required for md5sum.
 	cd "${2}"
 
-	# first - check if the files matches the md5sum.
+	# first check if the files matches the md5sum.
 	local LOCAL__line
 	for LOCAL__line in "${BABELIZE_FILES[@]}" ; do
 
@@ -644,11 +688,14 @@ function babelize__localize() {
 	# show user what we do.
 	babelize__printf "Extracting '${1}'"
 
+	# show user the number of files to process.
+	babelize__printf "Number of language files: ${#BABELIZE_FILES[@]}"
+
 	# create directory for extraction and extract langpack there.
 	@MKDIR@ "${LANGPACK_EXTRACT_DIR:-/tmp}/${BABELIZE_LANGPACK_REFERENCE}"
 	@TAR@ xzf "${LANGPACK_DIR:-/usr/local/share/babelize/langpacks}/${1}" -C "${LANGPACK_EXTRACT_DIR:-/tmp}/${BABELIZE_LANGPACK_REFERENCE}"
 
-	# second - loop for the language pack.
+	# second loop for the language pack.
 	local LOCAL__line
 	for LOCAL__line in "${BABELIZE_FILES[@]}" ; do
 
