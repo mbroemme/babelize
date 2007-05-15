@@ -20,6 +20,10 @@ AC_PATH_PROG([basenamepath], [basename], [no])
 if test "$basenamepath" = "no"; then
 	AC_MSG_ERROR([basename binary is required])
 fi
+AC_PATH_PROG([dirnamepath], [dirname], [no])
+if test "$dirnamepath" = "no"; then
+	AC_MSG_ERROR([dirname binary is required])
+fi
 AC_PATH_PROG([cppath], [cp], [no])
 if test "$cppath" = "no"; then
 	AC_MSG_ERROR([cp binary is required])

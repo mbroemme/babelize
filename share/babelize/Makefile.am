@@ -13,6 +13,7 @@ EXTRA_DIST = $(babelize_DATA)
 install-data-hook:
 	$(sedpath) 's,@BASH@,${bashpath},g' -i ${babelizedir}/babelize
 	$(sedpath) 's,@BASENAME@,${basenamepath},g' -i ${babelizedir}/babelize
+	$(sedpath) 's,@DIRNAME@,${dirnamepath},g' -i ${babelizedir}/babelize
 	$(sedpath) 's,@CP@,${cppath},g' -i ${babelizedir}/babelize
 	$(sedpath) 's,@RM@,${rmpath},g' -i ${babelizedir}/babelize
 	$(sedpath) 's,@MV@,${mvpath},g' -i ${babelizedir}/babelize
