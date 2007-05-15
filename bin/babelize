@@ -140,6 +140,7 @@ function babelize__get_switches() {
 				{
 
 					babelize__show_header &&
+					babelize__remove "${2}" "${3}" &&
 					babelize__localize "${2}" "${3}"
 				} || return "${?}"
 
@@ -148,7 +149,6 @@ function babelize__get_switches() {
 				shift
 				shift
 			;;
-
 			--localize-cd)
 
 				# check if we miss some parameter.
@@ -165,6 +165,7 @@ function babelize__get_switches() {
 				# now start real localization.
 				{
 					babelize__show_header &&
+					babelize__remove "${2}" "${3}" &&
 					babelize__install "${2}" "${3}" "${4}" &&
 					babelize__localize "${2}" "${3}"
 				} || return "${?}"
@@ -191,6 +192,7 @@ function babelize__get_switches() {
 				# now start real localization.
 				{
 					babelize__show_header &&
+					babelize__remove "${2}" "${3}" &&
 					babelize__install "${2}" "${3}" "${4}"
 				} || return "${?}"
 
