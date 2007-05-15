@@ -320,34 +320,28 @@ function babelize__remove() {
 
 	# loop through all files and remove the selected files.
 	local LOCAL__line
-	for LOCAL__line in "${BABELIZE_FILES[@]#*  }" ; do
+	for LOCAL__line in "${BABELIZE_FILES[@]}" ; do
 
-		# fetch working information.
-		local LOCAL__work="${LOCAL__line%%  *}"
+		# check if we are using the right file format.
+		case "${LOCAL__line}" in
+			md5:*action:build-*)
 
-		# fetch destination file information.
-		local LOCAL__destination="${LOCAL__line#*  }"
-		local LOCAL__destination="${LOCAL__destination#*  }"
-		local LOCAL__destination="${LOCAL__destination%%  *}"
-		local LOCAL__destination="${LOCAL__destination#*:}"
-
-		# check if we need to remove a file.
-		case "${LOCAL__work}" in
-			copy:*)
+				# fetch target information.
+				local LOCAL__target="${LOCAL__line##*target:}"
 
 				# check if the file exist.
-				[ -e "${2}/${LOCAL__destination}" ] && {
+				[ -e "${2}/${LOCAL__target}" ] && {
 
 					# show user what we do.
-					babelize__printf "Removing file '${2}/${LOCAL__destination}'"
+					babelize__printf "Removing file '${2}/${LOCAL__target}'"
 
 					# remove old file.
-					@RM@ "${2}/${LOCAL__destination}"
+					@RM@ "${2}/${LOCAL__target}"
 				}
 			;;
 			*)
 
-				# nothing to copy later.
+				# nothing to do.
 				continue
 			;;
 		esac
@@ -355,6 +349,54 @@ function babelize__remove() {
 
 	# if no error was found, return zero.
 	return 0
+}
+
+# @_babelize__permission()
+#
+# @_${1}: game directory
+# @_${2}: babelize file array
+#
+# this function changes the file permission of the copied, patched or restored files.
+function babelize_permission() {
+
+	# fetch game directory information.
+	local LOCAL__directory="${1}"
+
+	# shift argument list, because next argument must be the file array.
+	shift
+
+	# loop through all files and change permissions.
+	local LOCAL__line
+	for LOCAL__line in "${@}" ; do
+
+		# check if we are using the right file format.
+		case "${LOCAL__line}" in
+			md5:*action:patch-*)
+
+				# fetch permission information.
+				local LOCAL__mode="${LOCAL__line##*mode:}"
+				local LOCAL__mode="${LOCAL__mode%%  *}"
+
+				# fetch target information.
+				local LOCAL__target="${LOCAL__line##*target:}"
+
+				# change file permissions.
+				@CHMOD@ "${LOCAL__mode}" "${LOCAL__directory}/${LOCAL__target}" || {
+
+					# show user what we do.
+					babelize__printf "The permissions of file '${LOCAL__directory}/${LOCAL__target}' could not be changed, maybe a strange problem?"
+
+					# break execution, if file is corrupt.
+					return 1
+				}
+			;;
+			*)
+
+				# nothing to do.
+				continue
+			;;
+		esac
+	done
 }
 
 # @_babelize__install()
@@ -386,82 +428,64 @@ function babelize__install() {
 
 	# loop through all files and copy them.
 	local LOCAL__line
-	for LOCAL__line in "${BABELIZE_FILES[@]#*  }" ; do
+	for LOCAL__line in "${BABELIZE_FILES[@]}" ; do
 
-		# fetch working information.
-		local LOCAL__work="${LOCAL__line%%  *}"
+		# check if we are using the right file format.
+		case "${LOCAL__line}" in
+			md5:*action:patch-*source:archive:*)
 
-		# fetch archive information.
-		local LOCAL__archive="${LOCAL__line#*  }"
-		local LOCAL__archive="${LOCAL__archive%%  *}"
-		local LOCAL__archive="${LOCAL__archive%:*}"
+				# fetch archive information.
+				local LOCAL__archive="${LOCAL__line##*archive:}"
+				local LOCAL__archive="${LOCAL__archive%%  *}"
 
-		# fetch source file information.
-		local LOCAL__source="${LOCAL__line#*  }"
-		local LOCAL__source="${LOCAL__source%%  *}"
-		local LOCAL__source="${LOCAL__source#*:}"
+				# fetch target information.
+				local LOCAL__target="${LOCAL__line##*target:}"
 
-		# fetch destination file information.
-		local LOCAL__destination="${LOCAL__line#*  }"
-		local LOCAL__destination="${LOCAL__destination#*  }"
-		local LOCAL__destination="${LOCAL__destination%%  *}"
-		local LOCAL__destination="${LOCAL__destination#*:}"
+				# check if it is the first element.
+				[ "${LOCAL__archive[*]/${LOCAL__archive}/}" == "${LOCAL__archives[*]}" ] && {
 
-		# check if we should copy the original file from cd for patching.
-		case "${LOCAL__work}" in
-			patch:*)
-
-				# check if we should extract or copy a file.
-				[ "${LOCAL__source}" == "${LOCAL__archive}" ] && {
-
-					# show user what we do.
-					babelize__printf "Copying original file '${3}/${LOCAL__source}' -> '${2}/${LOCAL__destination}'"
-
-					# check if file exist.
-					[ -r "${3}/${LOCAL__source}" ] || {
-
-						# show user what we do.
-						babelize__printf "The file '${3}/${LOCAL__source}' does not exist, maybe this is the wrong cd?"
-
-						# break execution, if file is missing.
-						return 1
-					}
-
-					# check if destination directory exist.
-					[ -d "${2}/$(@DIRNAME@ "${LOCAL__destination}")" ] || {
-
-						# create directory for destination files.
-						@MKDIR@ -p "${2}/$(@DIRNAME@ "${LOCAL__destination}")"
-					}
-
-					# copy the file from cd.
-					@CP@ "${3}/${LOCAL__source}" "${2}/${LOCAL__destination}" || {
-
-						# show user what we do.
-						babelize__printf "The file '${3}/${LOCAL__source}' could not be copied, maybe a file permission problem?"
-
-						# break execution, if file is corrupt.
-						return 1
-					}
+					# build the archive filelist.
+					declare -a LOCAL__archives[${#LOCAL__archives[@]}]="${LOCAL__archive} ${LOCAL__target}"
 				} || {
 
-					# check if it is the first element.
-					[ "${LOCAL__archive[*]/${LOCAL__archive}/}" == "${LOCAL__archives[*]}" ] && {
-
-						# build the archive filelist.
-						declare -a LOCAL__archives[${#LOCAL__archives[@]}]="${LOCAL__archive} ${LOCAL__source}"
-					} || {
-
-						# build the archive filelist.
-						declare -a LOCAL__archives=("${LOCAL__archives[@]/${LOCAL__archive}/${LOCAL__archive} ${LOCAL__source}}")
-					}
+					# build the archive filelist.
+					declare -a LOCAL__archives=("${LOCAL__archives[@]/${LOCAL__archive}/${LOCAL__archive} ${LOCAL__target}}")
 				}
+			;;
+			md5:*action:patch-*source:*)
 
-				# change file permissions.
-				@CHMOD@ 0644 "${2}/${LOCAL__destination}" || {
+				# fetch source information.
+				local LOCAL__source="${LOCAL__line##*source:}"
+				local LOCAL__source="${LOCAL__source%%  *}"
+
+				# fetch target information.
+				local LOCAL__target="${LOCAL__line##*target:}"
+
+				# show user what we do.
+				babelize__printf "Copying original file '${3}/${LOCAL__source}' -> '${2}/${LOCAL__target}'"
+
+				# check if file exist.
+				[ -r "${3}/${LOCAL__source}" ] || {
 
 					# show user what we do.
-					babelize__printf "The permissions of file '${2}/${LOCAL__destination}' could not be changed, maybe a strange problem?"
+					babelize__printf "The file '${3}/${LOCAL__source}' does not exist, maybe this is the wrong cd?"
+
+					# break execution, if file is missing.
+					return 1
+				}
+
+				# check if destination directory exist.
+				[ -d "${2}/$(@DIRNAME@ "${LOCAL__target}")" ] || {
+
+					# create directory for destination files.
+					@MKDIR@ -p "${2}/$(@DIRNAME@ "${LOCAL__target}")"
+				}
+
+				# copy the file from cd.
+				@CP@ "${3}/${LOCAL__source}" "${2}/${LOCAL__target}" || {
+
+					# show user what we do.
+					babelize__printf "The file '${3}/${LOCAL__source}' could not be copied, maybe a file permission problem?"
 
 					# break execution, if file is corrupt.
 					return 1
@@ -469,7 +493,7 @@ function babelize__install() {
 			;;
 			*)
 
-				# nothing to patch later.
+				# nothing to do.
 				continue
 			;;
 		esac
@@ -530,6 +554,9 @@ function babelize__install() {
 		done
 	}
 
+	# set right permission on all files.
+	babelize_permission "${2}" "${BABELIZE_FILES[@]}" || return 1
+
 	# if no error was found, return zero.
 	return 0
 }
@@ -562,43 +589,51 @@ function babelize__localize() {
 
 	# first - check if the files matches the md5sum.
 	local LOCAL__line
-	for LOCAL__line in "${BABELIZE_FILES[@]/  *:/  }" ; do
+	for LOCAL__line in "${BABELIZE_FILES[@]}" ; do
 
-		# parse the required information.
-		local LOCAL__md5="${LOCAL__line%%  *}"
-		local LOCAL__file="${LOCAL__line##*  }"
-
-		# check if we should verify md5sum.
-		case "${LOCAL__md5}" in
-			00000000000000000000000000000000)
+		# check if we are using the right file format.
+		case "${LOCAL__line}" in
+			md5:00000000000000000000000000000000*)
 
 				# special md5sum, so continue without checking.
 				continue
 			;;
-			*)
+			md5:*)
+
+				# fetch md5 information.
+				local LOCAL__md5="${LOCAL__line##*md5:}"
+				local LOCAL__md5="${LOCAL__md5%%  *}"
+
+				# fetch target information.
+				local LOCAL__target="${LOCAL__line##*target:}"
 
 				# show user what we do.
-				babelize__printf "Checking md5sum of '${2}/${LOCAL__file}'"
+				babelize__printf "Checking md5sum of '${2}/${LOCAL__target}'"
 
 				# check if file exist.
-				[ -r "${2}/${LOCAL__file}" ] || {
+				[ -r "${2}/${LOCAL__target}" ] || {
 
 					# show user what we do.
-					babelize__printf "The file '${2}/${LOCAL__file}' does not exist, maybe this is no full game installation?"
+					babelize__printf "The file '${2}/${LOCAL__target}' does not exist, maybe this is no full game installation?"
 
 					# break execution, if file is missing.
 					return 1
 				}
 
 				# check the md5sum of the source file.
-				echo "${LOCAL__md5}  ${LOCAL__file}" | @MD5SUM@ --check --status || {
+				echo "${LOCAL__md5}  ${LOCAL__target}" | @MD5SUM@ --check --status || {
 
 					# show user what we do.
-					babelize__printf "The file '${2}/${LOCAL__file}' seems to be corrupt, maybe a previously applied localization problem?"
+					babelize__printf "The file '${2}/${LOCAL__target}' seems to be corrupt, maybe a previously applied localization problem?"
 
 					# break execution, if file is corrupt.
 					return 1
 				}
+			;;
+			*)
+
+				# nothing to do.
+				continue
 			;;
 		esac
 	done
@@ -615,40 +650,41 @@ function babelize__localize() {
 
 	# second - loop for the language pack.
 	local LOCAL__line
-	for LOCAL__line in "${BABELIZE_FILES[@]#*  }" ; do
+	for LOCAL__line in "${BABELIZE_FILES[@]}" ; do
 
-		# parse the required information.
-		local LOCAL__work="${LOCAL__line%%  *}"
-		local LOCAL__file="${LOCAL__line##*  }"
-		local LOCAL__file="${LOCAL__file##*:}"
+		# check if we are using the right file format.
+		case "${LOCAL__line}" in
+			md5:*patch-1*)
 
-		# check if we should patch or copy a file.
-		case "${LOCAL__work}" in
-			patch:1)
+				# fetch target information.
+				local LOCAL__target="${LOCAL__line##*target:}"
 
 				# show user what we do.
-				babelize__printf "Applying xdelta of '${2}/${LOCAL__file}'"
+				babelize__printf "Applying xdelta of '${2}/${LOCAL__target}'"
 
 				# patch files.
-				@XDELTA@ patch "${LANGPACK_EXTRACT_DIR:-/tmp}/${BABELIZE_LANGPACK_REFERENCE}/${BABELIZE_LANGPACK_LOCALE}/${LOCAL__file}.xdelta" "${2}/${LOCAL__file}" "${2}/${LOCAL__file}.xdp" || {
+				@XDELTA@ patch "${LANGPACK_EXTRACT_DIR:-/tmp}/${BABELIZE_LANGPACK_REFERENCE}/${BABELIZE_LANGPACK_LOCALE}/${LOCAL__target}.xdelta" "${2}/${LOCAL__target}" "${2}/${LOCAL__target}.xdp" || {
 
 					# show user what we do.
-					babelize__printf "The file '${2}/${LOCAL__file}' could not be patched."
+					babelize__printf "The file '${2}/${LOCAL__target}' could not be patched."
 
 					# break execution, if patching failed.
 					return 1
 				}
 
 				# overwrite old files with newly created one.
-				@MV@ "${2}/${LOCAL__file}.xdp" "${2}/${LOCAL__file}"
+				@MV@ "${2}/${LOCAL__target}.xdp" "${2}/${LOCAL__target}"
 			;;
-			copy:1)
+			md5:*build-1*)
+
+				# fetch target information.
+				local LOCAL__target="${LOCAL__line##*target:}"
 
 				# show user what we do.
-				babelize__printf "Creating file '${2}/${LOCAL__file}'"
+				babelize__printf "Creating file '${2}/${LOCAL__target}'"
 
 				# copy file.
-				@CP@ "${LANGPACK_EXTRACT_DIR:-/tmp}/${BABELIZE_LANGPACK_REFERENCE}/${BABELIZE_LANGPACK_LOCALE}/${LOCAL__file}" "${2}/${LOCAL__file}"
+				@CP@ "${LANGPACK_EXTRACT_DIR:-/tmp}/${BABELIZE_LANGPACK_REFERENCE}/${BABELIZE_LANGPACK_LOCALE}/${LOCAL__target}" "${2}/${LOCAL__target}"
 			;;
 			*)
 
@@ -657,6 +693,9 @@ function babelize__localize() {
 			;;
 		esac
 	done
+
+	# set right permission on all files.
+	babelize_permission "${2}" "${BABELIZE_FILES[@]}" || return 1
 
 	# removing temporary files
 	@RM@ -R "${LANGPACK_EXTRACT_DIR:-/tmp}/${BABELIZE_LANGPACK_REFERENCE}"
