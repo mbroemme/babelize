@@ -322,23 +322,27 @@ function babelize__remove() {
 	local LOCAL__line
 	for LOCAL__line in "${BABELIZE_FILES[@]#*  }" ; do
 
-		# parse the required information.
+		# fetch working information.
 		local LOCAL__work="${LOCAL__line%%  *}"
-		local LOCAL__file="${LOCAL__line##*  }"
-		local LOCAL__file="${LOCAL__file##*:}"
+
+		# fetch destination file information.
+		local LOCAL__destination="${LOCAL__line#*  }"
+		local LOCAL__destination="${LOCAL__destination#*  }"
+		local LOCAL__destination="${LOCAL__destination%%  *}"
+		local LOCAL__destination="${LOCAL__destination#*:}"
 
 		# check if we need to remove a file.
 		case "${LOCAL__work}" in
 			copy:*)
 
 				# check if the file exist.
-				[ -e "${2}/${LOCAL__file}" ] && {
+				[ -e "${2}/${LOCAL__destination}" ] && {
 
 					# show user what we do.
-					babelize__printf "Removing file '${2}/${LOCAL__file}'"
+					babelize__printf "Removing file '${2}/${LOCAL__destination}'"
 
 					# remove old file.
-					@RM@ "${2}/${LOCAL__file}"
+					@RM@ "${2}/${LOCAL__destination}"
 				}
 			;;
 			*)
@@ -377,101 +381,87 @@ function babelize__install() {
 	# show user the number of files to process.
 	babelize__printf "Number of original files: ${#BABELIZE_FILES[@]}"
 
+	# declare an empty array for the archives.
+	declare -a LOCAL__archives=()
+
 	# loop through all files and copy them.
 	local LOCAL__line
 	for LOCAL__line in "${BABELIZE_FILES[@]#*  }" ; do
 
-		# parse the required information.
+		# fetch working information.
 		local LOCAL__work="${LOCAL__line%%  *}"
-		local LOCAL__file="${LOCAL__line##*  }"
-		local LOCAL__file="${LOCAL__file##*:}"
-		local LOCAL__archive="${LOCAL__line##*  }"
-		local LOCAL__archive="${LOCAL__archive%%:*}"
+
+		# fetch archive information.
+		local LOCAL__archive="${LOCAL__line#*  }"
+		local LOCAL__archive="${LOCAL__archive%%  *}"
+		local LOCAL__archive="${LOCAL__archive%:*}"
+
+		# fetch source file information.
+		local LOCAL__source="${LOCAL__line#*  }"
+		local LOCAL__source="${LOCAL__source%%  *}"
+		local LOCAL__source="${LOCAL__source#*:}"
+
+		# fetch destination file information.
+		local LOCAL__destination="${LOCAL__line#*  }"
+		local LOCAL__destination="${LOCAL__destination#*  }"
+		local LOCAL__destination="${LOCAL__destination%%  *}"
+		local LOCAL__destination="${LOCAL__destination#*:}"
 
 		# check if we should copy the original file from cd for patching.
 		case "${LOCAL__work}" in
 			patch:*)
 
 				# check if we should extract or copy a file.
-				[ "${LOCAL__file}" == "${LOCAL__archive}" ] && {
+				[ "${LOCAL__source}" == "${LOCAL__archive}" ] && {
 
 					# show user what we do.
-					babelize__printf "Copying original file '${3}/${LOCAL__file}' -> '${2}/${LOCAL__file}'"
+					babelize__printf "Copying original file '${3}/${LOCAL__source}' -> '${2}/${LOCAL__destination}'"
 
 					# check if file exist.
-					[ -r "${3}/${LOCAL__file}" ] || {
+					[ -r "${3}/${LOCAL__source}" ] || {
 
 						# show user what we do.
-						babelize__printf "The file '${3}/${LOCAL__file}' does not exist, maybe this is the wrong cd?"
+						babelize__printf "The file '${3}/${LOCAL__source}' does not exist, maybe this is the wrong cd?"
 
 						# break execution, if file is missing.
 						return 1
 					}
 
 					# check if destination directory exist.
-					[ -d "${2}/${LOCAL__file%/*}" ] || {
+					[ -d "${2}/$(@DIRNAME@ "${LOCAL__destination}")" ] || {
 
 						# create directory for destination files.
-						@MKDIR@ -p "${2}/${LOCAL__file%/*}"
+						@MKDIR@ -p "${2}/$(@DIRNAME@ "${LOCAL__destination}")"
 					}
 
 					# copy the file from cd.
-					@CP@ "${3}/${LOCAL__file}" "${2}/${LOCAL__file}" || {
+					@CP@ "${3}/${LOCAL__source}" "${2}/${LOCAL__destination}" || {
 
 						# show user what we do.
-						babelize__printf "The file '${3}/${LOCAL__file}' could not be copied, maybe a file permission problem?"
+						babelize__printf "The file '${3}/${LOCAL__source}' could not be copied, maybe a file permission problem?"
 
 						# break execution, if file is corrupt.
 						return 1
 					}
 				} || {
 
-					# show user what we do.
-					babelize__printf "Extracting from file '${3}/${LOCAL__archive}' -> '${2}/${LOCAL__file}'"
+					# check if it is the first element.
+					[ "${LOCAL__archive[*]/${LOCAL__archive}/}" == "${LOCAL__archives[*]}" ] && {
 
-					# check if archive exist.
-					[ -r "${3}/${LOCAL__archive}" ] || {
+						# build the archive filelist.
+						declare -a LOCAL__archives[${#LOCAL__archives[@]}]="${LOCAL__archive} ${LOCAL__source}"
+					} || {
 
-						# show user what we do.
-						babelize__printf "The archive '${3}/${LOCAL__archive}' does not exist, maybe this is the wrong cd?"
-
-						# break execution, if file is missing.
-						return 1
+						# build the archive filelist.
+						declare -a LOCAL__archives=("${LOCAL__archives[@]/${LOCAL__archive}/${LOCAL__archive} ${LOCAL__source}}")
 					}
-
-					# check what compression was used.
-					case "${LOCAL__archive}" in
-						*.tar.gz)
-
-							# extract the file from the archive.
-							@TAR@ xzf "${3}/${LOCAL__archive}" -C "${2}" "${LOCAL__file}"
-						;;
-						*.tar.bz2)
-
-							# extract the file from the archive.
-							@TAR@ xjf "${3}/${LOCAL__archive}" -C "${2}" "${LOCAL__file}"
-						;;
-						*.tar)
-
-							# extract the file from the archive.
-							@TAR@ xf "${3}/${LOCAL__archive}" -C "${2}" "${LOCAL__file}"
-						;;
-						*)
-
-							# unknown compression method.
-							babelize__printf "The compression method for archive '${3}/${LOCAL__archive}' is unknown."
-
-							# return with error.
-							return 1
-						;;
-					esac
 				}
 
 				# change file permissions.
-				@CHMOD@ 0644 "${2}/${LOCAL__file}" || {
+				@CHMOD@ 0644 "${2}/${LOCAL__destination}" || {
 
 					# show user what we do.
-					babelize__printf "The permissions of file '${3}/${LOCAL__file}' could not be changed, maybe a strange problem?"
+					babelize__printf "The permissions of file '${2}/${LOCAL__destination}' could not be changed, maybe a strange problem?"
 
 					# break execution, if file is corrupt.
 					return 1
@@ -484,6 +474,61 @@ function babelize__install() {
 			;;
 		esac
 	done
+
+	# check if we also need to extract something.
+	[ "${#LOCAL__archives[@]}" -gt "0" ] && {
+
+		# loop through all archives.
+		local LOCAL__package
+		for LOCAL__package in "${LOCAL__archives[@]}" ; do
+
+			# fetch archive information.
+			local LOCAL__archive="${LOCAL__package%% *}"
+
+			# fetch file information.
+			local LOCAL__filelist="${LOCAL__package#* }"
+
+			# show user what we do.
+			babelize__printf "Extracting from file '${3}/${LOCAL__archive}'"
+
+			# check if archive exist.
+			[ -r "${3}/${LOCAL__archive}" ] || {
+
+				# show user what we do.
+				babelize__printf "The archive '${3}/${LOCAL__archive}' does not exist, maybe this is the wrong cd?"
+
+				# break execution, if file is missing.
+				return 1
+			}
+
+			# check what compression was used.
+			case "${LOCAL__archive}" in
+				*.tar.gz)
+
+					# extract the file from the archive.
+					@TAR@ xzf "${3}/${LOCAL__archive}" -v -C "${2}" ${LOCAL__filelist}
+				;;
+				*.tar.bz2)
+
+					# extract the file from the archive.
+					@TAR@ xjf "${3}/${LOCAL__archive}" -v -C "${2}" ${LOCAL__filelist}
+				;;
+				*.tar)
+
+					# extract the file from the archive.
+					@TAR@ xf "${3}/${LOCAL__archive}" -v -C "${2}" ${LOCAL__filelist}
+				;;
+				*)
+
+					# unknown compression method.
+					babelize__printf "The compression method for archive '${3}/${LOCAL__archive}' is unknown."
+
+					# return with error.
+					return 1
+				;;
+			esac
+		done
+	}
 
 	# if no error was found, return zero.
 	return 0
