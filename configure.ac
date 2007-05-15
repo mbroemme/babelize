@@ -1,5 +1,5 @@
 # The autoconf initilization.
-AC_INIT(babelize, 1.0.0, [mbroemme@plusserver.de], [babelize])
+AC_INIT(babelize, 1.0.1, [mbroemme@plusserver.de], [babelize])
 
 # Detect the canonical host and target build environment
 AC_CANONICAL_SYSTEM
