@@ -28,7 +28,7 @@
 function babelize__printf() {
 
 	# echo to stdout.
-	echo -e "${1}"
+	echo -e "${@}"
 
 	# if no error was found, return zero.
 	return 0
@@ -241,7 +241,6 @@ function babelize__list_langpacks() {
 			source "${LANGPACK_DIR:-/usr/local/share/babelize/langpacks}/$(@BASENAME@ ${LOCAL__file/tar.gz/conf})" || {
 
 				# skip to next file.
-				unset LOCAL__file
 				continue
 			}
 		}
@@ -258,7 +257,6 @@ function babelize__list_langpacks() {
 		} || {
 
 			# skip to next file.
-			unset LOCAL__file
 			continue
 		}
 
@@ -282,10 +280,22 @@ function babelize__list_langpacks() {
 		babelize__printf "  Langpack language:\t${BABELIZE_LANGPACK_LANGUAGE}"
 		babelize__printf "  Langpack archive:\t$(@BASENAME@ ${LOCAL__file})"
 		babelize__printf ""
+
+		# unset variable, maybe next language pack is missing one.
+		unset BABELIZE_REQUIRED_VERSION
+		unset BABELIZE_GAME_NAME
+		unset BABELIZE_LANGKACK_VERSION
+		unset BABELIZE_LANGPACK_LANGUAGE
+		unset BABELIZE_LANGPACK_LOCALE
+		unset BABELIZE_LANGPACK_REFERENCE
+		unset BABELIZE_FILES
+
+		# create marker, that we found at least one working language pack.
+		local LOCAL__found="${LOCAL__file}"
 	done
 
 	# check if we found any langpack.
-	[ "${LOCAL__file}" == "" ] && {
+	[ -z "${LOCAL__found}" ] && {
 
 		# show user the error.
 		babelize__printf "No available langpacks in '${LANGPACK_DIR:-/usr/local/share/babelize/langpacks}' were found."
@@ -575,16 +585,6 @@ function babelize__install() {
 
 					# extract the file from the archive.
 					@TAR@ xzf "${3}/${LOCAL__archive}" -v -C "${2}" ${LOCAL__filelist}
-				;;
-				*.tar.bz2)
-
-					# extract the file from the archive.
-					@TAR@ xjf "${3}/${LOCAL__archive}" -v -C "${2}" ${LOCAL__filelist}
-				;;
-				*.tar)
-
-					# extract the file from the archive.
-					@TAR@ xf "${3}/${LOCAL__archive}" -v -C "${2}" ${LOCAL__filelist}
 				;;
 				*)
 
