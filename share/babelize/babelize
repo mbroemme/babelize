@@ -366,7 +366,7 @@ function babelize_permission() {
 
 		# check if we are using the right file format.
 		case "${LOCAL__line}" in
-			md5:*action:patch-*)
+			md5:*action:xdelta-*)
 
 				# fetch permission information.
 				local LOCAL__mode="${LOCAL__line##*mode:}"
@@ -418,7 +418,7 @@ function babelize__remove() {
 	babelize__printf "Cleaning up '${2}'"
 
 	# show user the number of files to process.
-	babelize__printf "Number of removal files: $(babelize__files "build-" "${BABELIZE_FILES[@]}")"
+	babelize__printf "Number of removal files: $(babelize__files "create-" "${BABELIZE_FILES[@]}")"
 
 	# loop through all files and remove the selected files.
 	local LOCAL__line
@@ -426,7 +426,7 @@ function babelize__remove() {
 
 		# check if we are using the right file format.
 		case "${LOCAL__line}" in
-			md5:*action:build-*)
+			md5:*action:create-*)
 
 				# fetch target information.
 				local LOCAL__target="${LOCAL__line##*target:}"
@@ -475,7 +475,7 @@ function babelize__install() {
 	babelize__validate_version || return 1
 
 	# show user the number of files to process.
-	babelize__printf "Number of original files: $(babelize__files "patch-" "${BABELIZE_FILES[@]}")"
+	babelize__printf "Number of original files: $(babelize__files "xdelta-" "${BABELIZE_FILES[@]}")"
 
 	# declare an empty array for the archives.
 	declare -a LOCAL__archives=()
@@ -486,7 +486,7 @@ function babelize__install() {
 
 		# check if we are using the right file format.
 		case "${LOCAL__line}" in
-			md5:*action:patch-*source:archive:*)
+			md5:*action:xdelta-*source:archive:*)
 
 				# fetch archive information.
 				local LOCAL__archive="${LOCAL__line##*archive:}"
@@ -506,7 +506,7 @@ function babelize__install() {
 					declare -a LOCAL__archives=("${LOCAL__archives[@]/${LOCAL__archive}/${LOCAL__archive} ${LOCAL__target}}")
 				}
 			;;
-			md5:*action:patch-*source:*)
+			md5:*action:xdelta-*source:*)
 
 				# fetch source information.
 				local LOCAL__source="${LOCAL__line##*source:}"
@@ -626,7 +626,7 @@ function babelize__localize() {
 	babelize__validate_version || return 1
 
 	# show user the number of files to process.
-	babelize__printf "Number of md5 files: $(babelize__files "patch-" "${BABELIZE_FILES[@]}")"
+	babelize__printf "Number of md5 files: $(babelize__files "xdelta-" "${BABELIZE_FILES[@]}")"
 
 	# set working directory to ${2} required for md5sum.
 	cd "${2}"
@@ -701,7 +701,11 @@ function babelize__localize() {
 
 		# check if we are using the right file format.
 		case "${LOCAL__line}" in
-			md5:*patch-1*)
+			md5:*xdelta-1*)
+
+				# fetch version information.
+				local LOCAL__version="${LOCAL__line##*version:}"
+				local LOCAL__version="${LOCAL__version%%  *}"
 
 				# fetch target information.
 				local LOCAL__target="${LOCAL__line##*target:}"
@@ -710,7 +714,7 @@ function babelize__localize() {
 				babelize__printf "Applying xdelta of '${2}/${LOCAL__target}'"
 
 				# patch files.
-				@XDELTA@ patch "${LANGPACK_EXTRACT_DIR:-/tmp}/${BABELIZE_LANGPACK_REFERENCE}/${BABELIZE_LANGPACK_LOCALE}/${LOCAL__target}.xdelta" "${2}/${LOCAL__target}" "${2}/${LOCAL__target}.xdp" || {
+				@XDELTA@ patch "${LANGPACK_EXTRACT_DIR:-/tmp}/${BABELIZE_LANGPACK_REFERENCE}/${BABELIZE_LANGPACK_LOCALE}/${LOCAL__target}.${LOCAL__version}.xdelta" "${2}/${LOCAL__target}" "${2}/${LOCAL__target}.xdp" || {
 
 					# show user what we do.
 					babelize__printf "The file '${2}/${LOCAL__target}' could not be patched."
@@ -722,7 +726,11 @@ function babelize__localize() {
 				# overwrite old files with newly created one.
 				@MV@ "${2}/${LOCAL__target}.xdp" "${2}/${LOCAL__target}"
 			;;
-			md5:*build-1*)
+			md5:*create-1*)
+
+				# fetch version information.
+				local LOCAL__version="${LOCAL__line##*version:}"
+				local LOCAL__version="${LOCAL__version%%  *}"
 
 				# fetch target information.
 				local LOCAL__target="${LOCAL__line##*target:}"
@@ -731,7 +739,7 @@ function babelize__localize() {
 				babelize__printf "Creating file '${2}/${LOCAL__target}'"
 
 				# copy file.
-				@CP@ "${LANGPACK_EXTRACT_DIR:-/tmp}/${BABELIZE_LANGPACK_REFERENCE}/${BABELIZE_LANGPACK_LOCALE}/${LOCAL__target}" "${2}/${LOCAL__target}"
+				@CP@ "${LANGPACK_EXTRACT_DIR:-/tmp}/${BABELIZE_LANGPACK_REFERENCE}/${BABELIZE_LANGPACK_LOCALE}/${LOCAL__target}.${LOCAL__version}.create" "${2}/${LOCAL__target}"
 			;;
 			*)
 
