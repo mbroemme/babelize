@@ -165,7 +165,7 @@ function babelize__validate_cdpath() {
 function babelize__validate_diskspace() {
 
 	# check if we have enough diskspace.
-	local LOCAL__diskspace=$(($(@STAT@ -f --format %f "${LANGPACK_EXTRACT_DIR:-/tmp}") * 1024))
+	local LOCAL__diskspace=$(($(@STAT@ -f --format %f "${LANGPACK_EXTRACT_DIR:-/tmp}") * $(/usr/bin/stat -f --format %s "${LANGPACK_EXTRACT_DIR:-/tmp}")))
 	local LOCAL__filesize=$(($(@STAT@ --format %s "${LANGPACK_DIR:-/usr/local/share/babelize/langpacks}/${1}") + $(@STAT@ --format %s "${LANGPACK_DIR:-/usr/local/share/babelize/langpacks}/${1}") / 100 * 5))
 
 	# check if filesize plus 5% is smaller than diskspace
