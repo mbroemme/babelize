@@ -1,3 +1,18 @@
+Changes version 1.1.0 (2007-05-17)
+==================================
+
+    * switched to final language pack configuration file format (since
+      1.1.0 'babelize' is able to localize real games)
+
+    * added support for different source and target files to every
+      copy and patch function.
+
+    * added support for changing permissions after every copy and
+      patch function.
+
+    * added support for multiple versions of a patched file, to make
+      language pack independent from future game updates.
+
 Changes version 1.0.1 (2007-05-07)
 ==================================
 
