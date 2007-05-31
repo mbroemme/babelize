@@ -701,7 +701,7 @@ function babelize__localize() {
 
 		# check if we are using the right file format.
 		case "${LOCAL__line}" in
-			md5:*xdelta-1*)
+			md5:*xdelta-make*)
 
 				# fetch version information.
 				local LOCAL__version="${LOCAL__line##*version:}"
@@ -726,7 +726,7 @@ function babelize__localize() {
 				# overwrite old files with newly created one.
 				@MV@ "${2}/${LOCAL__target}.xdp" "${2}/${LOCAL__target}"
 			;;
-			md5:*create-1*)
+			md5:*create-make*)
 
 				# fetch version information.
 				local LOCAL__version="${LOCAL__line##*version:}"
