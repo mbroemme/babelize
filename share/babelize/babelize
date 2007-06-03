@@ -366,7 +366,7 @@ function babelize_permission() {
 
 		# check if we are using the right file format.
 		case "${LOCAL__line}" in
-			md5:*action:xdelta-*)
+			md5:*action:xdelta-none*|md5:*action:xdelta-make*|md5:*action:xdelta-copy*)
 
 				# fetch permission information.
 				local LOCAL__mode="${LOCAL__line##*mode:}"
@@ -426,7 +426,7 @@ function babelize__remove() {
 
 		# check if we are using the right file format.
 		case "${LOCAL__line}" in
-			md5:*action:create-*)
+			md5:*action:create-none*|md5:*action:create-make*|md5:*action:xdelta-copy*)
 
 				# fetch target information.
 				local LOCAL__target="${LOCAL__line##*target:}"
@@ -486,7 +486,7 @@ function babelize__install() {
 
 		# check if we are using the right file format.
 		case "${LOCAL__line}" in
-			md5:*action:xdelta-*source:archive:*)
+			md5:*action:xdelta-none*source:archive:*|md5:*action:xdelta-make*source:archive:*|md5:*action:xdelta-copy*source:archive:*)
 
 				# fetch archive information.
 				local LOCAL__archive="${LOCAL__line##*archive:}"
@@ -506,7 +506,7 @@ function babelize__install() {
 					declare -a LOCAL__archives=("${LOCAL__archives[@]/${LOCAL__archive}/${LOCAL__archive} ${LOCAL__target}}")
 				}
 			;;
-			md5:*action:xdelta-*source:*)
+			md5:*action:xdelta-none*source:*|md5:*action:xdelta-make*source:*|md5:*action:xdelta-copy*source:*)
 
 				# fetch source information.
 				local LOCAL__source="${LOCAL__line##*source:}"
@@ -701,7 +701,7 @@ function babelize__localize() {
 
 		# check if we are using the right file format.
 		case "${LOCAL__line}" in
-			md5:*xdelta-make*)
+			md5:*action:xdelta-make*|md5:*action:xdelta-copy*)
 
 				# fetch version information.
 				local LOCAL__version="${LOCAL__line##*version:}"
@@ -726,7 +726,7 @@ function babelize__localize() {
 				# overwrite old files with newly created one.
 				@MV@ "${2}/${LOCAL__target}.xdp" "${2}/${LOCAL__target}"
 			;;
-			md5:*create-make*)
+			md5:*action:create-make*)
 
 				# fetch version information.
 				local LOCAL__version="${LOCAL__line##*version:}"
