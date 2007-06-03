@@ -453,14 +453,14 @@ function babelize__remove() {
 	return 0
 }
 
-# @_babelize__install()
+# @_babelize__restore()
 #
 # @_${1}: language pack
 # @_${2}: game directory
 # @_${3}: cd directory
 #
 # this function localizes a specific game.
-function babelize__install() {
+function babelize__restore() {
 
 	# first check if the archive exist.
 	babelize__validate_langpack "${1}" || return 1
