@@ -138,20 +138,25 @@ function babelize__validate_gameroot() {
 
 # @_babelize__validate_cdpath()
 #
-# @_${1}: cd directory
+# @_${1}: cd directories
 #
 # this function checks if a given cdpath directory exist.
 function babelize__validate_cdpath() {
 
-	# check if the cdpath exist.
-	[ -d "${1}" ] || {
+	# loop through all directories.
+	local LOCAL__directory
+	for LOCAL__directory in "${@}" ; do
 
-		# show user what we do.
-		babelize__printf "The cdpath directory '${1}' does not exist."
+		# check if the cdpath exist.
+		[ -d "${LOCAL__directory}" ] || {
 
-		# the gameroot directory did not exist, break execution.
-		return 1
-	}
+			# show user what we do.
+			babelize__printf "The cdpath directory '${LOCAL__directory}' does not exist."
+
+			# the gameroot directory did not exist, break execution.
+			return 1
+		}
+	done
 
 	# if no error was found, return zero.
 	return 0
@@ -462,6 +467,25 @@ function babelize__remove() {
 # this function localizes a specific game.
 function babelize__restore() {
 
+	# the array which stores the cd paths.
+	declare -a LOCAL__directories=()
+
+	# loop through all cd paths and build the array.
+	while [ "${#LOCAL__directories[@]}" == "0" ] || [ "${3##*,}" != "${LOCAL__directories[$((${#LOCAL__directories[@]} - 1))]}" ] ; do
+
+		# check if it is the first loop.
+		[ "${#LOCAL__directories[@]}" == "0" ] && {
+			local LOCAL__directory="${3#*${LOCAL__directory}}"
+			local LOCAL__directory="${LOCAL__directory%%,*}"
+		} || {
+			local LOCAL__directory="${3#*${LOCAL__directory},}"
+			local LOCAL__directory="${LOCAL__directory%%,*}"
+		}
+
+		# add the directory to the array.
+		declare -a LOCAL__directories[${#LOCAL__directories[@]}]="${LOCAL__directory}"
+	done
+
 	# first check if the archive exist.
 	babelize__validate_langpack "${1}" || return 1
 
@@ -469,7 +493,7 @@ function babelize__restore() {
 	babelize__validate_gameroot "${2}" || return 1
 
 	# third check if the cdpath exist.
-	babelize__validate_cdpath "${3}" || return 1
+	babelize__validate_cdpath "${LOCAL__directories[@]}" || return 1
 
 	# fourth check if babelize version is correct.
 	babelize__validate_version || return 1
