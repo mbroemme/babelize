@@ -525,9 +525,6 @@ function babelize__restore() {
 				@MKDIR@ -p "${2}/$(@DIRNAME@ "${LOCAL__target}")"
 			}
 
-			# TODO: REMOVE THIS.
-			continue
-
 			# copy the file from cd.
 			@CP@ "${LOCAL__directories[$((${LOCAL__count} - 1))]}/${LOCAL__source}" "${2}/${LOCAL__target}" || {
 
@@ -684,9 +681,6 @@ function babelize__restore() {
 			# show user what we do.
 			babelize__printf "Extracting from file '${LOCAL__directories[$((${LOCAL__count} - 1))]}/${LOCAL__archive}'"
 
-			# TODO: REMOVE THIS.
-			continue
-
 			# check what compression was used.
 			case "${LOCAL__archive}" in
 				*.tar.gz)
@@ -724,9 +718,6 @@ function babelize__restore() {
 			done
 		done
 	done
-
-	# TODO: remove this.
-	return 1
 
 	# unset used variables.
 	unset LOCAL__cd
