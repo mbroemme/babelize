@@ -313,44 +313,6 @@ function babelize__list_langpacks() {
 	return 0
 }
 
-# @_babelize__files()
-#
-# @_${1}: count parameter
-# @_${2}: babelize file array
-#
-# this function returns the number of files which matches the search criteria.
-function babelize__files() {
-
-	# fetch game directory information.
-	local LOCAL__parameter="${1}"
-
-	# shift argument list, because next argument must be the file array.
-	shift
-
-	# loop through all files and count that one we should process.
-	local LOCAL__line
-	for LOCAL__line in "${@}" ; do
-		case "${LOCAL__line}" in
-			*${LOCAL__parameter}*)
-
-				# increase counter.
-				local LOCAL__count="$((LOCAL__count + 1))"
-			;;
-			*)
-
-				# nothing to do.
-				continue
-			;;
-		esac
-	done
-
-	# show the number of files to process.
-	echo "${LOCAL__count:-0}"
-
-	# if no error was found, return zero.
-	return 0
-}
-
 # @_babelize__remove()
 #
 # @_${1}: language pack
@@ -370,9 +332,6 @@ function babelize__remove() {
 
 	# show user what we do.
 	babelize__printf "Cleaning up '${2}'"
-
-	# show user the number of files to process.
-	babelize__printf "Number of removal files: $(babelize__files "create-" "${BABELIZE_FILES[@]}")"
 
 	# loop through all files and remove the selected files.
 	local LOCAL__line
@@ -449,9 +408,6 @@ function babelize__restore() {
 	# fourth check if babelize version is correct.
 	babelize__validate_version || return 1
 
-	# show user the number of files to process.
-	babelize__printf "Number of original files: $(babelize__files "xdelta-" "${BABELIZE_FILES[@]}")"
-
 	# declare an empty array for the cd files.
 	declare -a LOCAL__cds=()
 
@@ -504,6 +460,7 @@ function babelize__restore() {
 
 		# increase array index counter.
 		local LOCAL__count="$((${LOCAL__count} + 1))"
+		local LOCAL__media="${LOCAL__count}"
 
 		# show user what we do.
 		babelize__printf "Processing media '${LOCAL__count}'"
@@ -526,18 +483,40 @@ function babelize__restore() {
 			# fetch target information.
 			local LOCAL__target="${LOCAL__line##*target:}"
 
+			# loop until user breaks execution or right media was found.
+			while [ true ] ; do
+
+				# check if file exist.
+				[ -r "${LOCAL__directories[$((${LOCAL__count} - 1))]}/${LOCAL__source}" ] || {
+
+					# check if we are on a media index which is higher than the maximum number of media specified on command line.
+					[ "${LOCAL__count}" -gt "${#LOCAL__directories[@]}" ] && local LOCAL__count="$((${LOCAL__count} - 1))"
+
+					# interactive mode.
+					echo -n "Please insert cd/dvd '${LOCAL__media}' to '${LOCAL__directories[$((${LOCAL__count} - 1))]}' continue (Y/n) "
+					read
+
+					# check answer.
+					case "${REPLY}" in
+						n|N)
+
+							# user requested abort.
+							return 1
+						;;
+						*)
+
+							# continue loop and check if right media was inserted on next loop.
+							continue
+						;;
+					esac
+				}
+
+				# break execution, because file was found.
+				break
+			done
+
 			# show user what we do.
 			babelize__printf "Copying original file '${LOCAL__directories[$((${LOCAL__count} - 1))]}/${LOCAL__source}' -> '${2}/${LOCAL__target}'"
-
-			# check if file exist.
-			[ -r "${LOCAL__directories[$((${LOCAL__count} - 1))]}/${LOCAL__source}" ] || {
-
-				# show user what we do.
-				babelize__printf "The file '${LOCAL__directories[$((${LOCAL__count} - 1))]}/${LOCAL__source}' does not exist, maybe this is the wrong cd?"
-
-				# break execution, if file is missing.
-				return 1
-			}
 
 			# check if destination directory exist.
 			[ -d "${2}/$(@DIRNAME@ "${LOCAL__target}")" ] || {
@@ -545,6 +524,9 @@ function babelize__restore() {
 				# create directory for destination files.
 				@MKDIR@ -p "${2}/$(@DIRNAME@ "${LOCAL__target}")"
 			}
+
+			# TODO: REMOVE THIS.
+			continue
 
 			# copy the file from cd.
 			@CP@ "${LOCAL__directories[$((${LOCAL__count} - 1))]}/${LOCAL__source}" "${2}/${LOCAL__target}" || {
@@ -623,6 +605,7 @@ function babelize__restore() {
 
 		# increase array index counter.
 		local LOCAL__count="$((${LOCAL__count} + 1))"
+		local LOCAL__media="${LOCAL__count}"
 
 		# declare an empty array for the archives.
 		declare -a LOCAL__archives=()
@@ -666,18 +649,43 @@ function babelize__restore() {
 			# fetch file information.
 			local LOCAL__filelist="${LOCAL__package#* }"
 
+			# loop until user breaks execution or right media was found.
+			while [ true ] ; do
+
+				# check if archive exist.
+				[ -r "${LOCAL__directories[$((${LOCAL__count} - 1))]}/${LOCAL__archive}" ] || {
+
+					# check if we are on a media index which is higher than the maximum number of media specified on command line.
+					[ "${LOCAL__count}" -gt "${#LOCAL__directories[@]}" ] && local LOCAL__count="$((${LOCAL__count} - 1))"
+
+					# interactive mode.
+					echo -n "Please insert cd/dvd '${LOCAL__media}' to '${LOCAL__directories[$((${LOCAL__count} - 1))]}' continue (Y/n) "
+					read
+
+					# check answer.
+					case "${REPLY}" in
+						n|N)
+
+							# user requested abort.
+							return 1
+						;;
+						*)
+
+							# continue loop and check if right media was inserted on next loop.
+							continue
+						;;
+					esac
+				}
+
+				# break execution, because file was found.
+				break
+			done
+
 			# show user what we do.
 			babelize__printf "Extracting from file '${LOCAL__directories[$((${LOCAL__count} - 1))]}/${LOCAL__archive}'"
 
-			# check if archive exist.
-			[ -r "${LOCAL__directories[$((${LOCAL__count} - 1))]}/${LOCAL__archive}" ] || {
-
-				# show user what we do.
-				babelize__printf "The archive '${LOCAL__directories[$((${LOCAL__count} - 1))]}/${LOCAL__archive}' does not exist, maybe this is the wrong cd?"
-
-				# break execution, if file is missing.
-				return 1
-			}
+			# TODO: REMOVE THIS.
+			continue
 
 			# check what compression was used.
 			case "${LOCAL__archive}" in
@@ -717,6 +725,9 @@ function babelize__restore() {
 		done
 	done
 
+	# TODO: remove this.
+	return 1
+
 	# unset used variables.
 	unset LOCAL__cd
 	unset LOCAL__count
@@ -746,7 +757,7 @@ function babelize__localize() {
 	babelize__validate_version || return 1
 
 	# show user the number of files to process.
-	babelize__printf "Number of md5 files: $(babelize__files "xdelta-" "${BABELIZE_FILES[@]}")"
+	babelize__printf "Number files: ${BABELIZE_FILES[@]}"
 
 	# set working directory to ${2} required for md5sum.
 	cd "${2}"
