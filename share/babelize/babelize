@@ -748,7 +748,7 @@ function babelize__localize() {
 	babelize__validate_version || return 1
 
 	# show user the number of files to process.
-	babelize__printf "Number files: ${BABELIZE_FILES[@]}"
+	babelize__printf "Number files: ${#BABELIZE_FILES[@]}"
 
 	# set working directory to ${2} required for md5sum.
 	cd "${2}"
@@ -809,9 +809,6 @@ function babelize__localize() {
 
 	# show user what we do.
 	babelize__printf "Extracting '${1}'"
-
-	# show user the number of files to process.
-	babelize__printf "Number of language files: ${#BABELIZE_FILES[@]}"
 
 	# create directory for extraction and extract langpack there.
 	@MKDIR@ "${LANGPACK_EXTRACT_DIR:-/tmp}/${BABELIZE_LANGPACK_REFERENCE}"
