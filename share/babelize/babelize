@@ -792,7 +792,7 @@ function babelize__localize() {
 				[ -r "${2}/${LOCAL__target}" ] || {
 
 					# show user what we do.
-					babelize__printf "The file '${2}/${LOCAL__target}' does not exist, maybe this is no full game installation?"
+					babelize__printf "The file '${2}/${LOCAL__target}' does not exist, maybe you should run the 'babelize --restore' command?"
 
 					# break execution, if file is missing.
 					return 1
