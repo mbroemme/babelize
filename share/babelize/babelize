@@ -340,8 +340,7 @@ function babelize__remove() {
 		# check if we are using the right file format.
 		case "${LOCAL__line}" in
 			md5:*action:create-none*|\
-			md5:*action:create-make*|\
-			md5:*action:xdelta-copy*)
+			md5:*action:create-make*)
 
 				# fetch target information.
 				local LOCAL__target="${LOCAL__line##*target:}"
@@ -377,6 +376,15 @@ function babelize__remove() {
 # this function restores a specific game.
 function babelize__restore() {
 
+	# first check if the archive exist.
+	babelize__validate_langpack "${1}" || return 1
+
+	# second check if the gameroot exist.
+	babelize__validate_gameroot "${2}" || return 1
+
+	# third check if babelize version is correct.
+	babelize__validate_version || return 1
+
 	# the array which stores the cd paths.
 	declare -a LOCAL__directories=()
 
@@ -396,17 +404,8 @@ function babelize__restore() {
 		declare -a LOCAL__directories[${#LOCAL__directories[@]}]="${LOCAL__directory}"
 	done
 
-	# first check if the archive exist.
-	babelize__validate_langpack "${1}" || return 1
-
-	# second check if the gameroot exist.
-	babelize__validate_gameroot "${2}" || return 1
-
-	# third check if the cdpath exist.
+	# first check if the cdpath exist.
 	babelize__validate_cdpath "${LOCAL__directories[@]}" || return 1
-
-	# fourth check if babelize version is correct.
-	babelize__validate_version || return 1
 
 	# declare an empty array for the cd files.
 	declare -a LOCAL__cds=()
@@ -421,6 +420,12 @@ function babelize__restore() {
 
 		# check if we are using the right file format.
 		case "${LOCAL__line}" in
+			md5:*action:create-none*|\
+			md5:*action:create-make*)
+
+				# nothing to do for now.
+				continue
+			;;
 			md5:*source:archive:*)
 
 				# nothing to do for now.
@@ -564,6 +569,12 @@ function babelize__restore() {
 
 		# check if we are using the right file format.
 		case "${LOCAL__line}" in
+			md5:*action:create-none*|\
+			md5:*action:create-make*)
+
+				# nothing to do for now.
+				continue
+			;;
 			md5:*source:archive:*)
 
 				# fetch cd information.
@@ -582,6 +593,7 @@ function babelize__restore() {
 				}
 			;;
 			*)
+
 				# nothing to do for now.
 				continue
 			;;
@@ -820,8 +832,7 @@ function babelize__localize() {
 
 		# check if we are using the right file format.
 		case "${LOCAL__line}" in
-			md5:*action:xdelta-make*|\
-			md5:*action:xdelta-copy*)
+			md5:*action:xdelta-make*)
 
 				# fetch version information.
 				local LOCAL__version="${LOCAL__line##*version:}"
