@@ -340,7 +340,8 @@ function babelize__remove() {
 		# check if we are using the right file format.
 		case "${LOCAL__line}" in
 			md5:*action:create-none*|\
-			md5:*action:create-make*)
+			md5:*action:create-make*|\
+			md5:*action:xdelta-copy*)
 
 				# fetch target information.
 				local LOCAL__target="${LOCAL__line##*target:}"
@@ -421,15 +422,20 @@ function babelize__restore() {
 		# check if we are using the right file format.
 		case "${LOCAL__line}" in
 			md5:*action:create-none*|\
-			md5:*action:create-make*)
-
-				# nothing to do for now.
-				continue
-			;;
+			md5:*action:create-make*|\
+			md5:*action:xdelta-copy*|\
 			md5:*source:archive:*)
 
-				# nothing to do for now.
-				continue
+				# fetch cd information.
+				local LOCAL__cd="${LOCAL__line##*cd:}"
+				local LOCAL__cd="${LOCAL__cd%%  *}"
+
+				# check if the array element is unassigned.
+				[ -z "${LOCAL__cds[$((${LOCAL__cd} - 1))]}" ] && {
+
+					# create empty array element.
+					declare -a LOCAL__cds[$((${LOCAL__cd} - 1))]=""
+				}
 			;;
 			*)
 
@@ -467,89 +473,93 @@ function babelize__restore() {
 		local LOCAL__count="$((${LOCAL__count} + 1))"
 		local LOCAL__media="${LOCAL__count}"
 
-		# show user what we do.
-		babelize__printf "Processing media '${LOCAL__count}'"
-
-		# loop through the media references.
-		local LOCAL__index
-		for LOCAL__index in ${LOCAL__cd} ; do
-
-			# fetch line from index.
-			local LOCAL__line="${BABELIZE_FILES[${LOCAL__index}]}"
-
-			# fetch source information.
-			local LOCAL__source="${LOCAL__line##*source:}"
-			local LOCAL__source="${LOCAL__source%%  *}"
-
-			# fetch permission information.
-			local LOCAL__mode="${LOCAL__line##*mode:}"
-			local LOCAL__mode="${LOCAL__mode%%  *}"
-
-			# fetch target information.
-			local LOCAL__target="${LOCAL__line##*target:}"
-
-			# loop until user breaks execution or right media was found.
-			while [ true ] ; do
-
-				# check if file exist.
-				[ -r "${LOCAL__directories[$((${LOCAL__count} - 1))]}/${LOCAL__source}" ] || {
-
-					# check if we are on a media index which is higher than the maximum number of media specified on command line.
-					[ "${LOCAL__count}" -gt "${#LOCAL__directories[@]}" ] && local LOCAL__count="$((${LOCAL__count} - 1))"
-
-					# interactive mode.
-					echo -n "Please insert cd/dvd '${LOCAL__media}' to '${LOCAL__directories[$((${LOCAL__count} - 1))]}' continue (Y/n) "
-					read
-
-					# check answer.
-					case "${REPLY}" in
-						n|N)
-
-							# user requested abort.
-							return 1
-						;;
-						*)
-
-							# continue loop and check if right media was inserted on next loop.
-							continue
-						;;
-					esac
-				}
-
-				# break execution, because file was found.
-				break
-			done
+		# check if we should copy something from that media.
+		[ -n "${LOCAL__cd}" ] && {
 
 			# show user what we do.
-			babelize__printf "Copying original file '${LOCAL__directories[$((${LOCAL__count} - 1))]}/${LOCAL__source}' -> '${2}/${LOCAL__target}'"
+			babelize__printf "Processing media '${LOCAL__count}'"
 
-			# check if destination directory exist.
-			[ -d "${2}/$(@DIRNAME@ "${LOCAL__target}")" ] || {
+			# loop through the media references.
+			local LOCAL__index
+			for LOCAL__index in ${LOCAL__cd} ; do
 
-				# create directory for destination files.
-				@MKDIR@ -p "${2}/$(@DIRNAME@ "${LOCAL__target}")"
-			}
+				# fetch line from index.
+				local LOCAL__line="${BABELIZE_FILES[${LOCAL__index}]}"
 
-			# copy the file from cd.
-			@CP@ "${LOCAL__directories[$((${LOCAL__count} - 1))]}/${LOCAL__source}" "${2}/${LOCAL__target}" || {
+				# fetch source information.
+				local LOCAL__source="${LOCAL__line##*source:}"
+				local LOCAL__source="${LOCAL__source%%  *}"
+
+				# fetch permission information.
+				local LOCAL__mode="${LOCAL__line##*mode:}"
+				local LOCAL__mode="${LOCAL__mode%%  *}"
+
+				# fetch target information.
+				local LOCAL__target="${LOCAL__line##*target:}"
+
+				# loop until user breaks execution or right media was found.
+				while [ true ] ; do
+
+					# check if file exist.
+					[ -r "${LOCAL__directories[$((${LOCAL__count} - 1))]}/${LOCAL__source}" ] || {
+
+						# check if we are on a media index which is higher than the maximum number of media specified on command line.
+						[ "${LOCAL__count}" -gt "${#LOCAL__directories[@]}" ] && local LOCAL__count="$((${LOCAL__count} - 1))"
+
+						# interactive mode.
+						echo -n "Please insert cd/dvd '${LOCAL__media}' to '${LOCAL__directories[$((${LOCAL__count} - 1))]}' continue (Y/n) "
+						read
+
+						# check answer.
+						case "${REPLY}" in
+							n|N)
+
+								# user requested abort.
+								return 1
+							;;
+							*)
+
+								# continue loop and check if right media was inserted on next loop.
+								continue
+							;;
+						esac
+					}
+
+					# break execution, because file was found.
+					break
+				done
 
 				# show user what we do.
-				babelize__printf "The file '${LOCAL__directories[$((${LOCAL__count} - 1))]}/${LOCAL__source}' could not be copied, maybe a file permission problem?"
+				babelize__printf "Copying original file '${LOCAL__directories[$((${LOCAL__count} - 1))]}/${LOCAL__source}' -> '${2}/${LOCAL__target}'"
 
-				# break execution, if file is corrupt.
-				return 1
-			}
+				# check if destination directory exist.
+				[ -d "${2}/$(@DIRNAME@ "${LOCAL__target}")" ] || {
 
-			# change file permissions.
-			@CHMOD@ "${LOCAL__mode}" "${2}/${LOCAL__target}" || {
+					# create directory for destination files.
+					@MKDIR@ -p "${2}/$(@DIRNAME@ "${LOCAL__target}")"
+				}
 
-				# show user what we do.
-				babelize__printf "The permissions of file '${2}/${LOCAL__target}' could not be changed, maybe a strange problem?"
+				# copy the file from cd.
+				@CP@ "${LOCAL__directories[$((${LOCAL__count} - 1))]}/${LOCAL__source}" "${2}/${LOCAL__target}" || {
 
-				# break execution, if file is corrupt.
-				return 1
-			}
-		done
+					# show user what we do.
+					babelize__printf "The file '${LOCAL__directories[$((${LOCAL__count} - 1))]}/${LOCAL__source}' could not be copied, maybe a file permission problem?"
+
+					# break execution, if file is corrupt.
+					return 1
+				}
+
+				# change file permissions.
+				@CHMOD@ "${LOCAL__mode}" "${2}/${LOCAL__target}" || {
+
+					# show user what we do.
+					babelize__printf "The permissions of file '${2}/${LOCAL__target}' could not be changed, maybe a strange problem?"
+
+					# break execution, if file is corrupt.
+					return 1
+				}
+			done
+		}
 	done
 
 	# unset used variables.
@@ -570,10 +580,19 @@ function babelize__restore() {
 		# check if we are using the right file format.
 		case "${LOCAL__line}" in
 			md5:*action:create-none*|\
-			md5:*action:create-make*)
+			md5:*action:create-make*|\
+			md5:*action:xdelta-copy*)
 
-				# nothing to do for now.
-				continue
+				# fetch cd information.
+				local LOCAL__cd="${LOCAL__line##*cd:}"
+				local LOCAL__cd="${LOCAL__cd%%  *}"
+
+				# check if the array element is unassigned.
+				[ -z "${LOCAL__cds[$((${LOCAL__cd} - 1))]}" ] && {
+
+					# create empty array element.
+					declare -a LOCAL__cds[$((${LOCAL__cd} - 1))]=""
+				}
 			;;
 			md5:*source:archive:*)
 
@@ -591,11 +610,6 @@ function babelize__restore() {
 					# build the filelist based on cd number.
 					declare -a LOCAL__cds[$((${LOCAL__cd} - 1))]="${LOCAL__cds[$((${LOCAL__cd} - 1))]} $((${LOCAL__count} - 1))"
 				}
-			;;
-			*)
-
-				# nothing to do for now.
-				continue
 			;;
 		esac
 	done
@@ -616,119 +630,325 @@ function babelize__restore() {
 		local LOCAL__count="$((${LOCAL__count} + 1))"
 		local LOCAL__media="${LOCAL__count}"
 
-		# declare an empty array for the archives.
-		declare -a LOCAL__archives=()
+		# check if we should extract something from that media.
+		[ -n "${LOCAL__cd}" ] && {
 
-		# show user what we do.
-		babelize__printf "Processing media '${LOCAL__count}'"
-
-		# loop through the media references.
-		local LOCAL__index
-		for LOCAL__index in ${LOCAL__cd} ; do
-
-			# fetch line from index.
-			local LOCAL__line="${BABELIZE_FILES[${LOCAL__index}]}"
-
-			# fetch archive information.
-			local LOCAL__archive="${LOCAL__line##*archive:}"
-			local LOCAL__archive="${LOCAL__archive%%  *}"
-
-			# fetch target information.
-			local LOCAL__target="${LOCAL__line##*target:}"
-
-			# check if it is the first element.
-			[ "${LOCAL__archive[*]/${LOCAL__archive}/}" == "${LOCAL__archives[*]}" ] && {
-
-				# build the archive filelist.
-				declare -a LOCAL__archives[${#LOCAL__archives[@]}]="${LOCAL__archive} ${LOCAL__target}"
-			} || {
-
-				# build the archive filelist.
-				declare -a LOCAL__archives=("${LOCAL__archives[@]/${LOCAL__archive}/${LOCAL__archive} ${LOCAL__target}}")
-			}
-		done
-
-		# loop through all archives.
-		local LOCAL__package
-		for LOCAL__package in "${LOCAL__archives[@]}" ; do
-
-			# fetch archive information.
-			local LOCAL__archive="${LOCAL__package%% *}"
-
-			# fetch file information.
-			local LOCAL__filelist="${LOCAL__package#* }"
-
-			# loop until user breaks execution or right media was found.
-			while [ true ] ; do
-
-				# check if archive exist.
-				[ -r "${LOCAL__directories[$((${LOCAL__count} - 1))]}/${LOCAL__archive}" ] || {
-
-					# check if we are on a media index which is higher than the maximum number of media specified on command line.
-					[ "${LOCAL__count}" -gt "${#LOCAL__directories[@]}" ] && local LOCAL__count="$((${LOCAL__count} - 1))"
-
-					# interactive mode.
-					echo -n "Please insert cd/dvd '${LOCAL__media}' to '${LOCAL__directories[$((${LOCAL__count} - 1))]}' continue (Y/n) "
-					read
-
-					# check answer.
-					case "${REPLY}" in
-						n|N)
-
-							# user requested abort.
-							return 1
-						;;
-						*)
-
-							# continue loop and check if right media was inserted on next loop.
-							continue
-						;;
-					esac
-				}
-
-				# break execution, because file was found.
-				break
-			done
+			# declare an empty array for the archives.
+			declare -a LOCAL__archives=()
 
 			# show user what we do.
-			babelize__printf "Extracting from file '${LOCAL__directories[$((${LOCAL__count} - 1))]}/${LOCAL__archive}'"
+			babelize__printf "Processing media '${LOCAL__count}'"
 
-			# check what compression was used.
-			case "${LOCAL__archive}" in
-				*.tar.gz)
+			# loop through the media references.
+			local LOCAL__index
+			for LOCAL__index in ${LOCAL__cd} ; do
 
-					# extract the file from the archive.
-					@TAR@ xzf "${LOCAL__directories[$((${LOCAL__count} - 1))]}/${LOCAL__archive}" -v -C "${2}" ${LOCAL__filelist}
-				;;
-				*)
+				# fetch line from index.
+				local LOCAL__line="${BABELIZE_FILES[${LOCAL__index}]}"
 
-					# unknown compression method.
-					babelize__printf "The compression method for archive '${LOCAL__directories[$((${LOCAL__count} - 1))]}/${LOCAL__archive}' is unknown."
+				# fetch archive information.
+				local LOCAL__archive="${LOCAL__line##*archive:}"
+				local LOCAL__archive="${LOCAL__archive%%  *}"
 
-					# return with error.
-					return 1
-				;;
-			esac
+				# fetch target information.
+				local LOCAL__target="${LOCAL__line##*target:}"
 
-			# set right permission on extracted files.
-			local LOCAL__file
-			for LOCAL__file in ${LOCAL__filelist} ; do
+				# check if it is the first element.
+				[ "${LOCAL__archive[*]/${LOCAL__archive}/}" == "${LOCAL__archives[*]}" ] && {
+
+					# build the archive filelist.
+					declare -a LOCAL__archives[${#LOCAL__archives[@]}]="${LOCAL__archive} ${LOCAL__target}"
+				} || {
+
+					# build the archive filelist.
+					declare -a LOCAL__archives=("${LOCAL__archives[@]/${LOCAL__archive}/${LOCAL__archive} ${LOCAL__target}}")
+				}
+			done
+
+			# loop through all archives.
+			local LOCAL__package
+			for LOCAL__package in "${LOCAL__archives[@]}" ; do
+
+				# fetch archive information.
+				local LOCAL__archive="${LOCAL__package%% *}"
+
+				# fetch file information.
+				local LOCAL__filelist="${LOCAL__package#* }"
+
+				# loop until user breaks execution or right media was found.
+				while [ true ] ; do
+
+					# check if archive exist.
+					[ -r "${LOCAL__directories[$((${LOCAL__count} - 1))]}/${LOCAL__archive}" ] || {
+
+						# check if we are on a media index which is higher than the maximum number of media specified on command line.
+						[ "${LOCAL__count}" -gt "${#LOCAL__directories[@]}" ] && local LOCAL__count="$((${LOCAL__count} - 1))"
+
+						# interactive mode.
+						echo -n "Please insert cd/dvd '${LOCAL__media}' to '${LOCAL__directories[$((${LOCAL__count} - 1))]}' continue (Y/n) "
+						read
+
+						# check answer.
+						case "${REPLY}" in
+							n|N)
+
+								# user requested abort.
+								return 1
+							;;
+							*)
+
+								# continue loop and check if right media was inserted on next loop.
+								continue
+							;;
+						esac
+					}
+
+					# break execution, because file was found.
+					break
+				done
+
+				# show user what we do.
+				babelize__printf "Extracting from file '${LOCAL__directories[$((${LOCAL__count} - 1))]}/${LOCAL__archive}'"
+
+				# check what compression was used.
+				case "${LOCAL__archive}" in
+					*.tar.gz)
+
+						# extract the file from the archive.
+						@TAR@ xzf "${LOCAL__directories[$((${LOCAL__count} - 1))]}/${LOCAL__archive}" -v -C "${2}" ${LOCAL__filelist}
+					;;
+					*)
+
+						# unknown compression method.
+						babelize__printf "The compression method for archive '${LOCAL__directories[$((${LOCAL__count} - 1))]}/${LOCAL__archive}' is unknown."
+
+						# return with error.
+						return 1
+					;;
+				esac
+
+				# set right permission on extracted files.
+				local LOCAL__file
+				for LOCAL__file in ${LOCAL__filelist} ; do
+
+					# fetch permission information.
+					local LOCAL__mode="${LOCAL__line##*mode:}"
+					local LOCAL__mode="${LOCAL__mode%%  *}"
+
+					# change file permissions.
+					@CHMOD@ "${LOCAL__mode}" "${2}/${LOCAL__file}" || {
+
+						# show user what we do.
+						babelize__printf "The permissions of file '${2}/${LOCAL__file}' could not be changed, maybe a strange problem?"
+
+						# break execution, if file is corrupt.
+						return 1
+					}
+				done
+			done
+		}
+	done
+
+	# unset used variables.
+	unset LOCAL__cd
+	unset LOCAL__count
+
+	# if no error was found, return zero.
+	return 0
+}
+
+# @_babelize__extra()
+#
+# @_${1}: language pack
+# @_${2}: game directory
+# @_${3}: cd directories
+#
+# this function copies extra files for a specific game.
+function babelize__extra() {
+
+	# first check if the archive exist.
+	babelize__validate_langpack "${1}" || return 1
+
+	# second check if the gameroot exist.
+	babelize__validate_gameroot "${2}" || return 1
+
+	# third check if babelize version is correct.
+	babelize__validate_version || return 1
+
+	# the array which stores the cd paths.
+	declare -a LOCAL__directories=()
+
+	# loop through all cd paths and build the array.
+	while [ "${#LOCAL__directories[@]}" == "0" ] || [ "${3##*,}" != "${LOCAL__directories[$((${#LOCAL__directories[@]} - 1))]}" ] ; do
+
+		# check if it is the first loop.
+		[ "${#LOCAL__directories[@]}" == "0" ] && {
+			local LOCAL__directory="${3#*${LOCAL__directory}}"
+			local LOCAL__directory="${LOCAL__directory%%,*}"
+		} || {
+			local LOCAL__directory="${3#*${LOCAL__directory},}"
+			local LOCAL__directory="${LOCAL__directory%%,*}"
+		}
+
+		# add the directory to the array.
+		declare -a LOCAL__directories[${#LOCAL__directories[@]}]="${LOCAL__directory}"
+	done
+
+	# first check if the cdpath exist.
+	babelize__validate_cdpath "${LOCAL__directories[@]}" || return 1
+
+	# declare an empty array for the cd files.
+	declare -a LOCAL__cds=()
+
+	# loop through all files and build new array (files).
+	local LOCAL__line
+	local LOCAL__count
+	for LOCAL__line in "${BABELIZE_FILES[@]}" ; do
+
+		# increase array index counter.
+		local LOCAL__count="$((${LOCAL__count} + 1))"
+
+		# check if we are using the right file format.
+		case "${LOCAL__line}" in
+			md5:*action:create-none*|\
+			md5:*action:create-make*|\
+			md5:*action:xdelta-make*|\
+			md5:*source:archive:*)
+
+				# fetch cd information.
+				local LOCAL__cd="${LOCAL__line##*cd:}"
+				local LOCAL__cd="${LOCAL__cd%%  *}"
+
+				# check if the array element is unassigned.
+				[ -z "${LOCAL__cds[$((${LOCAL__cd} - 1))]}" ] && {
+
+					# create empty array element.
+					declare -a LOCAL__cds[$((${LOCAL__cd} - 1))]=""
+				}
+			;;
+			*)
+
+				# fetch cd information.
+				local LOCAL__cd="${LOCAL__line##*cd:}"
+				local LOCAL__cd="${LOCAL__cd%%  *}"
+
+				# create new array.
+				[ "${#LOCAL__cds[@]}" -lt "${LOCAL__cd}" ] && {
+
+					# build the filelist based on cd number.
+					declare -a LOCAL__cds[${#LOCAL__cds[@]}]="$((${LOCAL__count} - 1))"
+				} || {
+
+					# build the filelist based on cd number.
+					declare -a LOCAL__cds[$((${LOCAL__cd} - 1))]="${LOCAL__cds[$((${LOCAL__cd} - 1))]} $((${LOCAL__count} - 1))"
+				}
+			;;
+		esac
+	done
+
+	# unset used variables.
+	unset LOCAL__line
+	unset LOCAL__count
+
+	# show user what we do.
+	babelize__printf "Copying files..."
+
+	# loop through all media.
+	local LOCAL__cd
+	local LOCAL__count
+	for LOCAL__cd in "${LOCAL__cds[@]}" ; do
+
+		# increase array index counter.
+		local LOCAL__count="$((${LOCAL__count} + 1))"
+		local LOCAL__media="${LOCAL__count}"
+
+		# check if we should copy something from that media.
+		[ -n "${LOCAL__cd}" ] && {
+
+			# show user what we do.
+			babelize__printf "Processing media '${LOCAL__count}'"
+
+			# loop through the media references.
+			local LOCAL__index
+			for LOCAL__index in ${LOCAL__cd} ; do
+
+				# fetch line from index.
+				local LOCAL__line="${BABELIZE_FILES[${LOCAL__index}]}"
+
+				# fetch source information.
+				local LOCAL__source="${LOCAL__line##*source:}"
+				local LOCAL__source="${LOCAL__source%%  *}"
 
 				# fetch permission information.
 				local LOCAL__mode="${LOCAL__line##*mode:}"
 				local LOCAL__mode="${LOCAL__mode%%  *}"
 
-				# change file permissions.
-				@CHMOD@ "${LOCAL__mode}" "${2}/${LOCAL__file}" || {
+				# fetch target information.
+				local LOCAL__target="${LOCAL__line##*target:}"
+
+				# loop until user breaks execution or right media was found.
+				while [ true ] ; do
+
+					# check if file exist.
+					[ -r "${LOCAL__directories[$((${LOCAL__count} - 1))]}/${LOCAL__source}" ] || {
+
+						# check if we are on a media index which is higher than the maximum number of media specified on command line.
+						[ "${LOCAL__count}" -gt "${#LOCAL__directories[@]}" ] && local LOCAL__count="$((${LOCAL__count} - 1))"
+
+						# interactive mode.
+						echo -n "Please insert cd/dvd '${LOCAL__media}' to '${LOCAL__directories[$((${LOCAL__count} - 1))]}' continue (Y/n) "
+						read
+
+						# check answer.
+						case "${REPLY}" in
+							n|N)
+
+								# user requested abort.
+								return 1
+							;;
+							*)
+
+								# continue loop and check if right media was inserted on next loop.
+								continue
+							;;
+						esac
+					}
+
+					# break execution, because file was found.
+					break
+				done
+
+				# show user what we do.
+				babelize__printf "Copying original file '${LOCAL__directories[$((${LOCAL__count} - 1))]}/${LOCAL__source}' -> '${2}/${LOCAL__target}'"
+
+				# check if destination directory exist.
+				[ -d "${2}/$(@DIRNAME@ "${LOCAL__target}")" ] || {
+
+					# create directory for destination files.
+					@MKDIR@ -p "${2}/$(@DIRNAME@ "${LOCAL__target}")"
+				}
+
+				# copy the file from cd.
+				@CP@ "${LOCAL__directories[$((${LOCAL__count} - 1))]}/${LOCAL__source}" "${2}/${LOCAL__target}" || {
 
 					# show user what we do.
-					babelize__printf "The permissions of file '${2}/${LOCAL__file}' could not be changed, maybe a strange problem?"
+					babelize__printf "The file '${LOCAL__directories[$((${LOCAL__count} - 1))]}/${LOCAL__source}' could not be copied, maybe a file permission problem?"
+
+					# break execution, if file is corrupt.
+					return 1
+				}
+
+				# change file permissions.
+				@CHMOD@ "${LOCAL__mode}" "${2}/${LOCAL__target}" || {
+
+					# show user what we do.
+					babelize__printf "The permissions of file '${2}/${LOCAL__target}' could not be changed, maybe a strange problem?"
 
 					# break execution, if file is corrupt.
 					return 1
 				}
 			done
-		done
+		}
 	done
 
 	# unset used variables.
@@ -792,7 +1012,7 @@ function babelize__localize() {
 				[ -r "${2}/${LOCAL__target}" ] || {
 
 					# show user what we do.
-					babelize__printf "The file '${2}/${LOCAL__target}' does not exist, maybe you should run the 'babelize --restore' command?"
+					babelize__printf "The file '${2}/${LOCAL__target}' does not exist, maybe this is no full game installation?"
 
 					# break execution, if file is missing.
 					return 1
