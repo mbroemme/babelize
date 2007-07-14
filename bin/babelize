@@ -171,6 +171,7 @@ function babelize__get_switches() {
 					babelize__show_header &&
 					babelize__remove "${2}" "${3}" &&
 					babelize__restore "${2}" "${3}" "${4}" &&
+					babelize__extra "${2}" "${3}" "${4}" &&
 					babelize__localize "${2}" "${3}"
 				} || return "${?}"
 
