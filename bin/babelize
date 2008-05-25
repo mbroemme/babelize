@@ -59,6 +59,8 @@ function babelize__show_help() {
 	babelize__printf "			localize the game with the original cd files"
 	babelize__printf "      --restore		<archive> <gameroot> <cdpath 1>,[<cdpath 2>],..."
 	babelize__printf "			restore the original game language"
+        babelize__printf "      --restore-extra	<archive> <gameroot> <cdpath 1>,[<cdpath 2>],..."
+        babelize__printf "			restore the extra game files for localization"
 	babelize__printf ""
 	babelize__printf "Please report bugs to the appropriate authors, which can be found in the"
 	babelize__printf "version information. All other things can be send to <mbroemme@plusserver.de>"
@@ -149,9 +151,7 @@ function babelize__get_switches() {
 				} || return "${?}"
 
 				# clear variables.
-				shift
-				shift
-				shift
+				shift 3
 			;;
 			--localize-cd)
 
@@ -176,10 +176,7 @@ function babelize__get_switches() {
 				} || return "${?}"
 
 				# clear variables.
-				shift
-				shift
-				shift
-				shift
+				shift 4
 			;;
 			--restore)
 
@@ -194,7 +191,7 @@ function babelize__get_switches() {
 					return 1
 				}
 
-				# now start real localization.
+				# now start real restore.
 				{
 					babelize__show_header &&
 					babelize__remove "${2}" "${3}" &&
@@ -202,10 +199,29 @@ function babelize__get_switches() {
 				} || return "${?}"
 
 				# clear variables.
-				shift
-				shift
-				shift
-				shift
+				shift 4
+			;;
+			--restore-extra)
+
+				# check if we miss some parameter.
+				[ "${4}" == "" ] && {
+
+					# show the help for the missing parameter.
+					babelize__printf "${BABELIZE_PROCESS_NAME}: option \`${1}' requires 3 arguments"
+					babelize__printf "Try \`${BABELIZE_PROCESS_NAME} --help' for more information."
+
+					# return if we missed some parameter.
+					return 1
+				}
+
+				# now start real extra restore.
+				{
+					babelize__show_header &&
+					babelize__extra "${2}" "${3}" "${4}"
+				} || return "${?}"
+
+				# clear variables.
+				shift 4
 			;;
 			*)
 

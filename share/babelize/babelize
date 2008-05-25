@@ -1052,7 +1052,8 @@ function babelize__localize() {
 
 		# check if we are using the right file format.
 		case "${LOCAL__line}" in
-			md5:*action:xdelta-make*)
+			md5:*action:xdelta-make*|\
+			md5:*action:xdelta-copy*)
 
 				# fetch version information.
 				local LOCAL__version="${LOCAL__line##*version:}"
