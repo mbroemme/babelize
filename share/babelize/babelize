@@ -333,9 +333,42 @@ function babelize__remove() {
 	# show user what we do.
 	babelize__printf "Cleaning up '${2}'"
 
-	# loop through all files and remove the selected files.
+	# loop through all files and build new file array without duplicates.
+	declare -a LOCAL__files=()
 	local LOCAL__line
 	for LOCAL__line in "${BABELIZE_FILES[@]}" ; do
+
+		# check if we are using the right file format.
+		case "${LOCAL__line}" in
+			md5:*action:create-make*|\
+			md5:*action:xdelta-copy*)
+
+				# loop through new file array and look if member already included.
+				local LOCAL__file
+				for LOCAL__file in "${LOCAL__files[@]##*target:}" ; do
+
+					# check if member is already included.
+					[ "${LOCAL__file}" == "${LOCAL__line##*target:}" ] && {
+
+						# continue outer loop, because member is already included.
+						continue 2
+					}
+				done
+
+				# add file member to new array.
+				LOCAL__files[${#LOCAL__files[@]}]="${LOCAL__line}"
+			;;
+			*)
+
+				# nothing to do.
+				continue
+			;;
+		esac
+	done
+
+	# loop through all files and remove the selected files.
+	local LOCAL__line
+	for LOCAL__line in "${LOCAL__files[@]}" ; do
 
 		# check if we are using the right file format.
 		case "${LOCAL__line}" in
@@ -407,13 +440,34 @@ function babelize__restore() {
 	# first check if the cdpath exist.
 	babelize__validate_cdpath "${LOCAL__directories[@]}" || return 1
 
+	# loop through all files and build new file array without duplicates.
+	declare -a LOCAL__files=()
+	local LOCAL__line
+	for LOCAL__line in "${BABELIZE_FILES[@]}" ; do
+
+		# loop through new file array and look if member already included.
+		local LOCAL__file
+		for LOCAL__file in "${LOCAL__files[@]##*target:}" ; do
+
+			# check if member is already included.
+			[ "${LOCAL__file}" == "${LOCAL__line##*target:}" ] && {
+
+				# continue outer loop, because member is already included.
+				continue 2
+			}
+		done
+
+		# add file member to new array.
+		LOCAL__files[${#LOCAL__files[@]}]="${LOCAL__line}"
+	done
+
 	# declare an empty array for the cd files.
 	declare -a LOCAL__cds=()
 
 	# loop through all files and build new array (files).
 	local LOCAL__line
 	local LOCAL__count
-	for LOCAL__line in "${BABELIZE_FILES[@]}" ; do
+	for LOCAL__line in "${LOCAL__files[@]}" ; do
 
 		# increase array index counter.
 		local LOCAL__count="$((${LOCAL__count} + 1))"
@@ -482,7 +536,7 @@ function babelize__restore() {
 			for LOCAL__index in ${LOCAL__cd} ; do
 
 				# fetch line from index.
-				local LOCAL__line="${BABELIZE_FILES[${LOCAL__index}]}"
+				local LOCAL__line="${LOCAL__files[${LOCAL__index}]}"
 
 				# fetch source information.
 				local LOCAL__source="${LOCAL__line##*source:}"
@@ -570,7 +624,7 @@ function babelize__restore() {
 	# loop through all files and build new array (archives).
 	local LOCAL__line
 	local LOCAL__count
-	for LOCAL__line in "${BABELIZE_FILES[@]}" ; do
+	for LOCAL__line in "${LOCAL__files[@]}" ; do
 
 		# increase array index counter.
 		local LOCAL__count="$((${LOCAL__count} + 1))"
@@ -641,7 +695,7 @@ function babelize__restore() {
 			for LOCAL__index in ${LOCAL__cd} ; do
 
 				# fetch line from index.
-				local LOCAL__line="${BABELIZE_FILES[${LOCAL__index}]}"
+				local LOCAL__line="${LOCAL__files[${LOCAL__index}]}"
 
 				# fetch archive information.
 				local LOCAL__archive="${LOCAL__line##*archive:}"
@@ -794,13 +848,34 @@ function babelize__extra() {
 	# first check if the cdpath exist.
 	babelize__validate_cdpath "${LOCAL__directories[@]}" || return 1
 
+	# loop through all files and build new file array without duplicates.
+	declare -a LOCAL__files=()
+	local LOCAL__line
+	for LOCAL__line in "${BABELIZE_FILES[@]}" ; do
+
+		# loop through new file array and look if member already included.
+		local LOCAL__file
+		for LOCAL__file in "${LOCAL__files[@]##*target:}" ; do
+
+			# check if member is already included.
+			[ "${LOCAL__file}" == "${LOCAL__line##*target:}" ] && {
+
+				# continue outer loop, because member is already included.
+				continue 2
+			}
+		done
+
+		# add file member to new array.
+		LOCAL__files[${#LOCAL__files[@]}]="${LOCAL__line}"
+	done
+
 	# declare an empty array for the cd files.
 	declare -a LOCAL__cds=()
 
 	# loop through all files and build new array (files).
 	local LOCAL__line
 	local LOCAL__count
-	for LOCAL__line in "${BABELIZE_FILES[@]}" ; do
+	for LOCAL__line in "${LOCAL__files[@]}" ; do
 
 		# increase array index counter.
 		local LOCAL__count="$((${LOCAL__count} + 1))"
@@ -869,7 +944,7 @@ function babelize__extra() {
 			for LOCAL__index in ${LOCAL__cd} ; do
 
 				# fetch line from index.
-				local LOCAL__line="${BABELIZE_FILES[${LOCAL__index}]}"
+				local LOCAL__line="${LOCAL__files[${LOCAL__index}]}"
 
 				# fetch source information.
 				local LOCAL__source="${LOCAL__line##*source:}"
@@ -976,14 +1051,19 @@ function babelize__localize() {
 	babelize__validate_version || return 1
 
 	# show user the number of files to process.
-	babelize__printf "Number of files: '${#BABELIZE_FILES[@]}'"
+	babelize__printf "Number of files (verify): '${#BABELIZE_FILES[@]}'"
 
 	# set working directory to ${2} required for md5sum.
 	cd "${2}"
 
 	# first check if the files matches the md5sum.
+	declare -a LOCAL__files=()
+	local LOCAL__count
 	local LOCAL__line
 	for LOCAL__line in "${BABELIZE_FILES[@]}" ; do
+
+		# increase counter.
+		let LOCAL__count++
 
 		# check if we are using the right file format.
 		case "${LOCAL__line}" in
@@ -1001,27 +1081,56 @@ function babelize__localize() {
 				# fetch target information.
 				local LOCAL__target="${LOCAL__line##*target:}"
 
-				# show user what we do.
-				babelize__printf "Checking md5sum of '${2}/${LOCAL__target}'"
-
-				# check if file exist.
-				[ -r "${2}/${LOCAL__target}" ] || {
+				# check if previously version was checked successfully.
+				[ "${LOCAL__files[*]%target:${LOCAL__target}}" != "${LOCAL__files[*]}" ] && {
 
 					# show user what we do.
-					babelize__printf "The file '${2}/${LOCAL__target}' does not exist, maybe this is no full game installation?"
+					babelize__printf "Checking md5sum of '${2}/${LOCAL__target}' (skipped previously version found)"
 
-					# break execution, if file is missing.
-					return 1
+					# continue to next file.
+					continue
 				}
 
-				# check the md5sum of the source file.
-				echo "${LOCAL__md5}  ${LOCAL__target}" | @MD5SUM@ --check --status || {
+				# check file only if it wasn't processed already.
+				[ "${LOCAL__files[*]%target:${LOCAL__target}}" == "${LOCAL__files[*]}" ] && {
+
+					# fetch version information.
+					local LOCAL__version="${LOCAL__line##*version:}"
+					local LOCAL__version="${LOCAL__version%%  *}"
 
 					# show user what we do.
-					babelize__printf "The file '${2}/${LOCAL__target}' seems to be corrupt, maybe a previously applied localization problem?"
+					babelize__printf "Checking md5sum of '${2}/${LOCAL__target}'"
 
-					# break execution, if file is corrupt.
-					return 1
+					# check if file exist.
+					[ -r "${2}/${LOCAL__target}" ] || {
+
+						# show user what we do.
+						babelize__printf "The file '${2}/${LOCAL__target}' does not exist, maybe this is no full game installation?"
+
+						# break execution, if file is missing.
+						return 1
+					}
+
+					# check the md5sum of the source file.
+					echo "${LOCAL__md5}  ${LOCAL__target}" | @MD5SUM@ --check --status && {
+
+						# add file member to new array.
+						LOCAL__files[${#LOCAL__files[@]}]="${LOCAL__line}"
+					} || {
+
+						# store temporary array values for comparison.
+						local LOCAL__temp="${BABELIZE_FILES[@]:${LOCAL__count}}"
+
+						# check if there is another version of that file to verify.
+						[ "${LOCAL__temp%target:${LOCAL__target}*}" == "${LOCAL__temp}" ] && {
+
+							# show user what we do.
+							babelize__printf "The file '${2}/${LOCAL__target}' seems to be corrupt, maybe a previously applied localization problem?"
+
+							# break execution, if file is corrupt.
+							return 1
+						}
+					}
 				}
 			;;
 			*)
@@ -1042,9 +1151,12 @@ function babelize__localize() {
 	@MKDIR@ "${LANGPACK_EXTRACT_DIR:-/tmp}/${BABELIZE_LANGPACK_REFERENCE}"
 	@TAR@ xzf "${LANGPACK_DIR:-/usr/local/share/babelize/langpacks}/${1}" -C "${LANGPACK_EXTRACT_DIR:-/tmp}/${BABELIZE_LANGPACK_REFERENCE}"
 
+	# show user the number of files to process.
+	babelize__printf "Number of files (create): '${#LOCAL__files[@]}'"
+
 	# second loop for the language pack.
 	local LOCAL__line
-	for LOCAL__line in "${BABELIZE_FILES[@]}" ; do
+	for LOCAL__line in "${LOCAL__files[@]}" ; do
 
 		# check if we are using the right file format.
 		case "${LOCAL__line}" in
