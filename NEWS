@@ -1,3 +1,20 @@
+Changes version 1.1.1 (2008-06-10)
+==================================
+
+    * added support for multiple source media. (games like descent 3
+      will need this)
+
+    * added support for extra files which are not installed on full
+      game installation but required for localization.
+
+    * added support for patching different version of the same file.
+      (files which are patched during game updates)
+
+    * added support for patching optional files (files which are
+      created during game updates)
+
+    * added interactive media change mode.
+
 Changes version 1.1.0 (2007-05-17)
 ==================================
 
