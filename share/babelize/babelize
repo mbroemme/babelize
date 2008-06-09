@@ -341,7 +341,8 @@ function babelize__remove() {
 		# check if we are using the right file format.
 		case "${LOCAL__line}" in
 			md5:*action:create-make*|\
-			md5:*action:xdelta-copy*)
+			md5:*action:xdelta-copy*|\
+			md5:*action:xdelta-make*)
 
 				# loop through new file array and look if member already included.
 				local LOCAL__file
@@ -370,30 +371,18 @@ function babelize__remove() {
 	local LOCAL__line
 	for LOCAL__line in "${LOCAL__files[@]}" ; do
 
-		# check if we are using the right file format.
-		case "${LOCAL__line}" in
-			md5:*action:create-make*|\
-			md5:*action:xdelta-copy*)
+		# fetch target information.
+		local LOCAL__target="${LOCAL__line##*target:}"
 
-				# fetch target information.
-				local LOCAL__target="${LOCAL__line##*target:}"
+		# check if the file exist.
+		[ -e "${2}/${LOCAL__target}" ] && {
 
-				# check if the file exist.
-				[ -e "${2}/${LOCAL__target}" ] && {
+			# show user what we do.
+			babelize__printf "Removing file '${2}/${LOCAL__target}'"
 
-					# show user what we do.
-					babelize__printf "Removing file '${2}/${LOCAL__target}'"
-
-					# remove old file.
-					@RM@ "${2}/${LOCAL__target}"
-				}
-			;;
-			*)
-
-				# nothing to do.
-				continue
-			;;
-		esac
+			# remove old file.
+			@RM@ "${2}/${LOCAL__target}"
+		}
 	done
 
 	# if no error was found, return zero.
@@ -474,6 +463,11 @@ function babelize__restore() {
 
 		# check if we are using the right file format.
 		case "${LOCAL__line}" in
+			md5:*cd:0*)
+
+				# media zero is a special case, file is created first with an official game update.
+				continue
+			;;
 			md5:*action:create-make*|\
 			md5:*action:xdelta-copy*|\
 			md5:*source:archive:*)
@@ -481,13 +475,6 @@ function babelize__restore() {
 				# fetch cd information.
 				local LOCAL__cd="${LOCAL__line##*cd:}"
 				local LOCAL__cd="${LOCAL__cd%%  *}"
-
-				# check if the file is really on media.
-				[ "${LOCAL__cd}" == "0" ] && {
-
-					# file is not on original media, so continue.
-					continue
-				}
 
 				# check if the array element is unassigned.
 				[ -z "${LOCAL__cds[$((${LOCAL__cd} - 1))]}" ] && {
@@ -501,13 +488,6 @@ function babelize__restore() {
 				# fetch cd information.
 				local LOCAL__cd="${LOCAL__line##*cd:}"
 				local LOCAL__cd="${LOCAL__cd%%  *}"
-
-				# check if the file is really on media.
-				[ "${LOCAL__cd}" == "0" ] && {
-
-					# file is not on original media, so continue.
-					continue
-				}
 
 				# create new array.
 				[ "${#LOCAL__cds[@]}" -lt "${LOCAL__cd}" ] && {
@@ -645,19 +625,17 @@ function babelize__restore() {
 
 		# check if we are using the right file format.
 		case "${LOCAL__line}" in
+			md5:*cd:0*)
+
+				# media zero is a special case, file is created first with an official game update.
+				continue
+			;;
 			md5:*action:create-make*|\
 			md5:*action:xdelta-copy*)
 
 				# fetch cd information.
 				local LOCAL__cd="${LOCAL__line##*cd:}"
 				local LOCAL__cd="${LOCAL__cd%%  *}"
-
-				# check if the file is really on media.
-				[ "${LOCAL__cd}" == "0" ] && {
-
-					# file is not on original media, so continue.
-					continue
-				}
 
 				# check if the array element is unassigned.
 				[ -z "${LOCAL__cds[$((${LOCAL__cd} - 1))]}" ] && {
@@ -671,13 +649,6 @@ function babelize__restore() {
 				# fetch cd information.
 				local LOCAL__cd="${LOCAL__line##*cd:}"
 				local LOCAL__cd="${LOCAL__cd%%  *}"
-
-				# check if the file is really on media.
-				[ "${LOCAL__cd}" == "0" ] && {
-
-					# file is not on original media, so continue.
-					continue
-				}
 
 				# create new array.
 				[ "${#LOCAL__cds[@]}" -lt "${LOCAL__cd}" ] && {
@@ -910,6 +881,11 @@ function babelize__extra() {
 
 		# check if we are using the right file format.
 		case "${LOCAL__line}" in
+			md5:*cd:0*)
+
+				# media zero is a special case, file is created first with an official game update.
+				continue
+			;;
 			md5:*action:create-make*|\
 			md5:*action:xdelta-make*|\
 			md5:*source:archive:*)
@@ -917,13 +893,6 @@ function babelize__extra() {
 				# fetch cd information.
 				local LOCAL__cd="${LOCAL__line##*cd:}"
 				local LOCAL__cd="${LOCAL__cd%%  *}"
-
-				# check if the file is really on media.
-				[ "${LOCAL__cd}" == "0" ] && {
-
-					# file is not on original media, so continue.
-					continue
-				}
 
 				# check if the array element is unassigned.
 				[ -z "${LOCAL__cds[$((${LOCAL__cd} - 1))]}" ] && {
@@ -937,13 +906,6 @@ function babelize__extra() {
 				# fetch cd information.
 				local LOCAL__cd="${LOCAL__line##*cd:}"
 				local LOCAL__cd="${LOCAL__cd%%  *}"
-
-				# check if the file is really on media.
-				[ "${LOCAL__cd}" == "0" ] && {
-
-					# file is not on original media, so continue.
-					continue
-				}
 
 				# create new array.
 				[ "${#LOCAL__cds[@]}" -lt "${LOCAL__cd}" ] && {
@@ -1138,8 +1100,8 @@ function babelize__localize() {
 					local LOCAL__version="${LOCAL__version%%  *}"
 
 					# fetch source information.
-					local LOCAL__source="${LOCAL__line##*source:}"
-					local LOCAL__source="${LOCAL__source%%  *}"
+					local LOCAL__cd="${LOCAL__line##*cd:}"
+					local LOCAL__cd="${LOCAL__cd%%  *}"
 
 					# check if file exist.
 					[ -r "${2}/${LOCAL__target}" ] && {
@@ -1173,7 +1135,7 @@ function babelize__localize() {
 					}
 
 					# check if file exist.
-					[ ! -r "${2}/${LOCAL__target}" ] && [ "${LOCAL__source}" != "-" ] && {
+					[ ! -r "${2}/${LOCAL__target}" ] && [ "${LOCAL__cd}" -gt "0" ] && {
 
 						# show user what we do.
 						babelize__printf "The file '${2}/${LOCAL__target}' does not exist, maybe this is no full game installation?"
@@ -1211,7 +1173,8 @@ function babelize__localize() {
 		# check if we are using the right file format.
 		case "${LOCAL__line}" in
 			md5:*action:xdelta-make*|\
-			md5:*action:xdelta-copy*)
+			md5:*action:xdelta-copy*|\
+			md5:*action:xdelta-next*)
 
 				# fetch version information.
 				local LOCAL__version="${LOCAL__line##*version:}"
