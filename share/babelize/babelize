@@ -482,6 +482,13 @@ function babelize__restore() {
 				local LOCAL__cd="${LOCAL__line##*cd:}"
 				local LOCAL__cd="${LOCAL__cd%%  *}"
 
+				# check if the file is really on media.
+				[ "${LOCAL__cd}" == "0" ] && {
+
+					# file is not on original media, so continue.
+					continue
+				}
+
 				# check if the array element is unassigned.
 				[ -z "${LOCAL__cds[$((${LOCAL__cd} - 1))]}" ] && {
 
@@ -494,6 +501,13 @@ function babelize__restore() {
 				# fetch cd information.
 				local LOCAL__cd="${LOCAL__line##*cd:}"
 				local LOCAL__cd="${LOCAL__cd%%  *}"
+
+				# check if the file is really on media.
+				[ "${LOCAL__cd}" == "0" ] && {
+
+					# file is not on original media, so continue.
+					continue
+				}
 
 				# create new array.
 				[ "${#LOCAL__cds[@]}" -lt "${LOCAL__cd}" ] && {
@@ -638,6 +652,13 @@ function babelize__restore() {
 				local LOCAL__cd="${LOCAL__line##*cd:}"
 				local LOCAL__cd="${LOCAL__cd%%  *}"
 
+				# check if the file is really on media.
+				[ "${LOCAL__cd}" == "0" ] && {
+
+					# file is not on original media, so continue.
+					continue
+				}
+
 				# check if the array element is unassigned.
 				[ -z "${LOCAL__cds[$((${LOCAL__cd} - 1))]}" ] && {
 
@@ -650,6 +671,13 @@ function babelize__restore() {
 				# fetch cd information.
 				local LOCAL__cd="${LOCAL__line##*cd:}"
 				local LOCAL__cd="${LOCAL__cd%%  *}"
+
+				# check if the file is really on media.
+				[ "${LOCAL__cd}" == "0" ] && {
+
+					# file is not on original media, so continue.
+					continue
+				}
 
 				# create new array.
 				[ "${#LOCAL__cds[@]}" -lt "${LOCAL__cd}" ] && {
@@ -890,6 +918,13 @@ function babelize__extra() {
 				local LOCAL__cd="${LOCAL__line##*cd:}"
 				local LOCAL__cd="${LOCAL__cd%%  *}"
 
+				# check if the file is really on media.
+				[ "${LOCAL__cd}" == "0" ] && {
+
+					# file is not on original media, so continue.
+					continue
+				}
+
 				# check if the array element is unassigned.
 				[ -z "${LOCAL__cds[$((${LOCAL__cd} - 1))]}" ] && {
 
@@ -902,6 +937,13 @@ function babelize__extra() {
 				# fetch cd information.
 				local LOCAL__cd="${LOCAL__line##*cd:}"
 				local LOCAL__cd="${LOCAL__cd%%  *}"
+
+				# check if the file is really on media.
+				[ "${LOCAL__cd}" == "0" ] && {
+
+					# file is not on original media, so continue.
+					continue
+				}
 
 				# create new array.
 				[ "${#LOCAL__cds[@]}" -lt "${LOCAL__cd}" ] && {
@@ -1084,9 +1126,6 @@ function babelize__localize() {
 				# check if previously version was checked successfully.
 				[ "${LOCAL__files[*]%target:${LOCAL__target}}" != "${LOCAL__files[*]}" ] && {
 
-					# show user what we do.
-					babelize__printf "Checking md5sum of '${2}/${LOCAL__target}' (skipped previously version found)"
-
 					# continue to next file.
 					continue
 				}
@@ -1098,38 +1137,49 @@ function babelize__localize() {
 					local LOCAL__version="${LOCAL__line##*version:}"
 					local LOCAL__version="${LOCAL__version%%  *}"
 
-					# show user what we do.
-					babelize__printf "Checking md5sum of '${2}/${LOCAL__target}'"
+					# fetch source information.
+					local LOCAL__source="${LOCAL__line##*source:}"
+					local LOCAL__source="${LOCAL__source%%  *}"
 
 					# check if file exist.
-					[ -r "${2}/${LOCAL__target}" ] || {
+					[ -r "${2}/${LOCAL__target}" ] && {
+
+						# check the md5sum of the source file.
+						echo "${LOCAL__md5}  ${LOCAL__target}" | @MD5SUM@ --check --status && {
+
+							# show user what we do.
+							babelize__printf "Checking md5sum of '${2}/${LOCAL__target}'"
+
+							# add file member to new array.
+							LOCAL__files[${#LOCAL__files[@]}]="${LOCAL__line}"
+						} || {
+
+							# store temporary array values for comparison.
+							local LOCAL__temp="${BABELIZE_FILES[@]:${LOCAL__count}}"
+
+							# check if there is another version of that file to verify.
+							[ "${LOCAL__temp%target:${LOCAL__target}*}" == "${LOCAL__temp}" ] && {
+
+								# show user what we do.
+								babelize__printf "Checking md5sum of '${2}/${LOCAL__target}'"
+
+								# show user what we do.
+								babelize__printf "The file '${2}/${LOCAL__target}' seems to be corrupt, maybe a previously applied localization problem?"
+
+								# break execution, if file is corrupt.
+								return 1
+							}
+						}
+					}
+
+					# check if file exist.
+					[ ! -r "${2}/${LOCAL__target}" ] && [ "${LOCAL__source}" != "-" ] && {
 
 						# show user what we do.
 						babelize__printf "The file '${2}/${LOCAL__target}' does not exist, maybe this is no full game installation?"
 
 						# break execution, if file is missing.
 						return 1
-					}
-
-					# check the md5sum of the source file.
-					echo "${LOCAL__md5}  ${LOCAL__target}" | @MD5SUM@ --check --status && {
-
-						# add file member to new array.
-						LOCAL__files[${#LOCAL__files[@]}]="${LOCAL__line}"
-					} || {
-
-						# store temporary array values for comparison.
-						local LOCAL__temp="${BABELIZE_FILES[@]:${LOCAL__count}}"
-
-						# check if there is another version of that file to verify.
-						[ "${LOCAL__temp%target:${LOCAL__target}*}" == "${LOCAL__temp}" ] && {
-
-							# show user what we do.
-							babelize__printf "The file '${2}/${LOCAL__target}' seems to be corrupt, maybe a previously applied localization problem?"
-
-							# break execution, if file is corrupt.
-							return 1
-						}
 					}
 				}
 			;;
