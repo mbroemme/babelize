@@ -146,7 +146,6 @@ function babelize__get_switches() {
 				{
 
 					babelize__show_header &&
-					babelize__remove "${2}" "${3}" &&
 					babelize__localize "${2}" "${3}"
 				} || return "${?}"
 
