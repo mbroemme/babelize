@@ -1071,12 +1071,9 @@ function babelize__localize() {
 
 		# check if we are using the right file format.
 		case "${LOCAL__line}" in
-			md5:00000000000000000000000000000000*)
-
-				# special md5sum, so continue without checking.
-				continue
-			;;
-			md5:*)
+			md5:*action:xdelta-make*|\
+			md5:*action:xdelta-copy*|\
+			md5:*action:xdelta-none*)
 
 				# fetch md5 information.
 				local LOCAL__md5="${LOCAL__line##*md5:}"
@@ -1145,6 +1142,25 @@ function babelize__localize() {
 					}
 				}
 			;;
+			md5:*action:create-make*)
+
+				# fetch target information.
+				local LOCAL__target="${LOCAL__line##*target:}"
+
+				# check if previously version was checked successfully.
+				[ "${LOCAL__files[*]%target:${LOCAL__target}}" != "${LOCAL__files[*]}" ] && {
+
+					# continue to next file.
+					continue
+				}
+
+				# check file only if it wasn't processed already.
+				[ "${LOCAL__files[*]%target:${LOCAL__target}}" == "${LOCAL__files[*]}" ] && {
+
+					# add file member to new array.
+					LOCAL__files[${#LOCAL__files[@]}]="${LOCAL__line}"
+				}
+			;;
 			*)
 
 				# nothing to do.
@@ -1173,8 +1189,7 @@ function babelize__localize() {
 		# check if we are using the right file format.
 		case "${LOCAL__line}" in
 			md5:*action:xdelta-make*|\
-			md5:*action:xdelta-copy*|\
-			md5:*action:xdelta-next*)
+			md5:*action:xdelta-copy*)
 
 				# fetch version information.
 				local LOCAL__version="${LOCAL__line##*version:}"
