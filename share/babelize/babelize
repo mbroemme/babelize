@@ -463,11 +463,6 @@ function babelize__restore() {
 
 		# check if we are using the right file format.
 		case "${LOCAL__line}" in
-			md5:*cd:0*)
-
-				# media zero is a special case, file is created first with an official game update.
-				continue
-			;;
 			md5:*action:create-make*|\
 			md5:*action:xdelta-copy*|\
 			md5:*source:archive:*)
@@ -625,11 +620,6 @@ function babelize__restore() {
 
 		# check if we are using the right file format.
 		case "${LOCAL__line}" in
-			md5:*cd:0*)
-
-				# media zero is a special case, file is created first with an official game update.
-				continue
-			;;
 			md5:*action:create-make*|\
 			md5:*action:xdelta-copy*)
 
@@ -881,11 +871,6 @@ function babelize__extra() {
 
 		# check if we are using the right file format.
 		case "${LOCAL__line}" in
-			md5:*cd:0*)
-
-				# media zero is a special case, file is created first with an official game update.
-				continue
-			;;
 			md5:*action:create-make*|\
 			md5:*action:xdelta-make*|\
 			md5:*source:archive:*)
@@ -1132,7 +1117,7 @@ function babelize__localize() {
 					}
 
 					# check if file exist.
-					[ ! -r "${2}/${LOCAL__target}" ] && [ "${LOCAL__cd}" -gt "0" ] && {
+					[ ! -r "${2}/${LOCAL__target}" ] && {
 
 						# show user what we do.
 						babelize__printf "The file '${2}/${LOCAL__target}' does not exist, maybe this is no full game installation?"
