@@ -1,3 +1,10 @@
+===============================================================
+NOTICE: THIS REPOSITORY INCLUDES ONLY THE MAIN APPLICATION. THE
+LANGUAGE PACKS CAN BE DOWNLOADED AT:
+
+https://libmpq.org/babelize/
+============================
+
 Introduction
 ============
 
@@ -23,9 +30,6 @@ Reporting Bugs
 
 Bug reports for 'babelize' can be send to me directly.
 
-    * Maik Broemme <mbroemme@plusserver.de>
+    * Maik Broemme <mbroemme@libmpq.org>
 
 Enjoy!
-
-Maik Broemme <mbroemme@plusserver.de>
-http://www.babelize.org/
